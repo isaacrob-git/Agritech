@@ -52,6 +52,7 @@ const API_PRODUCTS = "http://localhost:3000/api/products";
 const API_ORDERS = "http://localhost:3000/api/orders";
 const API_CONTRACTS = "http://localhost:3000/api/contracts";
 const API_TOKENS = "http://localhost:3000/api/tokens";
+const API_USERS = "http://localhost:3000/api/auth";
 const API_URL = "http://localhost:3000/api";
 const token = localStorage.getItem("token");
 const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -356,9 +357,25 @@ async function renderMisPedidos() {
 // ======================
 // CONTRATOS
 // ======================
+let contratoDetalleId = null;
+
 async function renderContratos() {
     const content = document.getElementById("content");
-    content.innerHTML = "<p class='text-gray-500'>Cargando contratos...</p>";
+
+    if (contratoDetalleId) {
+        renderContratoDetalle(contratoDetalleId);
+        return;
+    }
+
+    content.innerHTML = `
+        <div class="flex justify-between items-center mb-4">
+            <p class="text-gray-500">Cargando contratos...</p>
+            <button onclick="renderNuevoContrato()"
+                class="bg-blue-600 text-white px-4 py-2 rounded font-bold">
+                + Nuevo contrato
+            </button>
+        </div>
+    `;
 
     try {
         const res = await fetch(API_CONTRACTS + "/comercio", {
@@ -367,41 +384,295 @@ async function renderContratos() {
 
         const data = await res.json();
 
+        const header = `
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg">Mis contratos (${data.length})</h3>
+                <button onclick="renderNuevoContrato()"
+                    class="bg-blue-600 text-white px-4 py-2 rounded font-bold">
+                    + Nuevo contrato
+                </button>
+            </div>
+        `;
+
         if (!data.length) {
-            content.innerHTML = "<p class='text-gray-500'>No tienes contratos aún</p>";
+            content.innerHTML = header + "<p class='text-gray-500'>No tienes contratos aún. Crea tu primer contrato.</p>";
             return;
         }
 
-        content.innerHTML = data.map(c => {
-            const color = c.estado === "activo" ? "bg-blue-100 border-blue-300"
-                : c.estado === "completado" ? "bg-green-100 border-green-300"
-                : "bg-red-100 border-red-300";
+        const badgeColor = (estado) => ({
+            pendiente: "bg-yellow-500",
+            activo: "bg-blue-600",
+            en_produccion: "bg-indigo-500",
+            en_transporte: "bg-purple-500",
+            entregado: "bg-green-600",
+            finalizado: "bg-gray-600",
+            rechazado: "bg-red-600",
+            cancelado: "bg-red-400"
+        }[estado] || "bg-gray-400");
 
-            const badgeColor = c.estado === "activo" ? "bg-blue-600"
-                : c.estado === "completado" ? "bg-green-600"
-                : "bg-red-600";
+        const badgeLabel = (estado) => ({
+            pendiente: "Pendiente",
+            activo: "Activo",
+            en_produccion: "En producción",
+            en_transporte: "En transporte",
+            entregado: "Entregado",
+            finalizado: "Finalizado",
+            rechazado: "Rechazado",
+            cancelado: "Cancelado"
+        }[estado] || estado);
 
-            return `
-                <div class="border p-4 rounded-xl mb-3 ${color}">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <p><b>Producto:</b> ${c.producto?.nombre || "—"}</p>
-                            <p><b>Cantidad:</b> ${c.cantidadKg} kg</p>
-                            <p><b>Precio acordado:</b> $${c.precioAcordado}/kg</p>
-                            <p><b>Agricultor:</b> ${c.agricultor?.nombre || "—"}</p>
-                            <p><b>Fecha entrega:</b> ${new Date(c.fechaEntrega).toLocaleDateString()}</p>
-                        </div>
-                        <span class="text-white px-3 py-1 rounded text-sm font-bold ${badgeColor}">
-                            ${c.estado}
-                        </span>
-                    </div>
-                </div>
-            `;
-        }).join("");
+        content.innerHTML = header + `
+            <div class="overflow-x-auto">
+                <table class="w-full bg-white rounded-xl shadow">
+                    <thead>
+                        <tr class="border-b bg-gray-50">
+                            <th class="p-3 text-left">Código</th>
+                            <th class="p-3 text-left">Producto</th>
+                            <th class="p-3 text-left">Agricultor</th>
+                            <th class="p-3 text-left">Cantidad</th>
+                            <th class="p-3 text-left">Estado</th>
+                            <th class="p-3 text-left"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(c => `
+                            <tr class="border-b hover:bg-gray-50">
+                                <td class="p-3 font-bold">${c.codigo}</td>
+                                <td class="p-3">${c.nombreProducto}</td>
+                                <td class="p-3">${c.agricultor?.nombre || "—"}</td>
+                                <td class="p-3">${c.cantidadKg} kg</td>
+                                <td class="p-3">
+                                    <span class="text-white px-2 py-0.5 rounded text-xs font-bold ${badgeColor(c.estado)}">
+                                        ${badgeLabel(c.estado)}
+                                    </span>
+                                </td>
+                                <td class="p-3">
+                                    <button onclick="verContrato('${c._id}')"
+                                        class="text-blue-600 text-sm font-bold">
+                                        Ver
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            </div>
+        `;
 
     } catch (e) {
         content.innerHTML = "<p class='text-red-500'>Error al cargar contratos</p>";
     }
+}
+
+function verContrato(id) {
+    contratoDetalleId = id;
+    renderContratoDetalle(id);
+}
+
+async function renderContratoDetalle(id) {
+    const content = document.getElementById("content");
+    content.innerHTML = "<p class='text-gray-500'>Cargando...</p>";
+
+    try {
+        const res = await fetch(API_CONTRACTS + "/" + id, {
+            headers: { "Authorization": "Bearer " + token }
+        });
+
+        const c = await res.json();
+
+        const badgeColor = {
+            pendiente: "bg-yellow-500",
+            activo: "bg-blue-600",
+            en_produccion: "bg-indigo-500",
+            en_transporte: "bg-purple-500",
+            entregado: "bg-green-600",
+            finalizado: "bg-gray-600",
+            rechazado: "bg-red-600",
+            cancelado: "bg-red-400"
+        }[c.estado] || "bg-gray-400";
+
+        const badgeLabel = {
+            pendiente: "Pendiente",
+            activo: "Activo",
+            en_produccion: "En producción",
+            en_transporte: "En transporte",
+            entregado: "Entregado",
+            finalizado: "Finalizado",
+            rechazado: "Rechazado",
+            cancelado: "Cancelado"
+        }[c.estado] || c.estado;
+
+        content.innerHTML = `
+            <button onclick="volverContratos()" class="text-blue-600 mb-4 inline-block">&larr; Volver a contratos</button>
+
+            <div class="bg-white p-6 rounded-xl shadow">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="text-2xl font-bold">${c.codigo}</h3>
+                        <p class="text-gray-500 mt-1">${c.nombreProducto}</p>
+                    </div>
+                    <span class="text-white px-3 py-1 rounded text-sm font-bold ${badgeColor}">${badgeLabel}</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mt-6">
+                    <div>
+                        <p class="text-gray-500 text-sm">Cantidad</p>
+                        <p class="font-bold text-lg">${c.cantidadKg} kg</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm">Precio acordado</p>
+                        <p class="font-bold text-lg">$${c.precioAcordado}/kg</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm">Agricultor</p>
+                        <p class="font-bold">${c.agricultor?.nombre || "—"} (${c.agricultor?.codigo || "—"})</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm">Fecha de entrega</p>
+                        <p class="font-bold">${new Date(c.fechaEntrega).toLocaleDateString()}</p>
+                    </div>
+                </div>
+
+                ${c.token ? `
+                    <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+                        <p class="text-sm text-gray-500">Token asociado</p>
+                        <p class="font-bold">${c.token.codigo || "—"} — ${c.token.cantidad || "—"} kg</p>
+                    </div>
+                ` : ""}
+
+                ${c.historial?.length ? `
+                    <details class="mt-4">
+                        <summary class="text-sm text-gray-500 cursor-pointer font-bold">Historial</summary>
+                        <div class="mt-2 space-y-1">
+                            ${c.historial.map(h => `
+                                <p class="text-xs text-gray-400">
+                                    ${h.accion} — ${new Date(h.fecha).toLocaleString()} ${h.usuario?.nombre ? `(${h.usuario.nombre})` : ""}
+                                </p>
+                            `).join("")}
+                        </div>
+                    </details>
+                ` : ""}
+
+                ${c.estado !== "finalizado" && c.estado !== "cancelado" && c.estado !== "rechazado" ? `
+                    <button onclick="cancelarContrato('${c._id}')"
+                        class="mt-4 text-red-500 text-sm font-bold">
+                        Cancelar contrato
+                    </button>
+                ` : ""}
+            </div>
+        `;
+    } catch (e) {
+        content.innerHTML = "<p class='text-red-500'>Error al cargar contrato</p>";
+    }
+}
+
+function volverContratos() {
+    contratoDetalleId = null;
+    renderContratos();
+}
+
+async function cancelarContrato(id) {
+    if (!confirm("¿Cancelar este contrato?")) return;
+
+    const res = await fetch(`${API_CONTRACTS}/${id}/cancelar`, {
+        method: "PUT",
+        headers: { "Authorization": "Bearer " + token }
+    });
+
+    if (!res.ok) {
+        const data = await res.json();
+        alert(data.message);
+        return;
+    }
+
+    renderContratoDetalle(id);
+}
+
+async function renderNuevoContrato() {
+    const content = document.getElementById("content");
+
+    let agricultores = [];
+    try {
+        const res = await fetch(API_USERS + "/agricultores");
+        agricultores = await res.json();
+    } catch (e) {}
+
+    content.innerHTML = `
+        <button onclick="volverContratos()" class="text-blue-600 mb-4 inline-block">&larr; Volver a contratos</button>
+
+        <div class="bg-white p-6 rounded-xl shadow max-w-lg">
+            <h3 class="font-bold text-xl mb-6">Nuevo contrato</h3>
+
+            <form id="formContrato" class="space-y-4">
+                <div>
+                    <label class="text-sm font-semibold">Nombre del producto</label>
+                    <input type="text" id="fcProducto" required
+                        class="w-full border p-2 rounded">
+                </div>
+                <div>
+                    <label class="text-sm font-semibold">Agricultor</label>
+                    <select id="fcAgricultor" required
+                        class="w-full border p-2 rounded">
+                        <option value="">Selecciona un agricultor</option>
+                        ${agricultores.map(a => `
+                            <option value="${a._id}">${a.codigo} — ${a.nombre}</option>
+                        `).join("")}
+                    </select>
+                </div>
+                <div>
+                    <label class="text-sm font-semibold">Cantidad (kg)</label>
+                    <input type="number" id="fcCantidad" min="1" required
+                        class="w-full border p-2 rounded">
+                </div>
+                <div>
+                    <label class="text-sm font-semibold">Precio acordado ($/kg)</label>
+                    <input type="number" id="fcPrecio" min="0.01" step="0.01" required
+                        class="w-full border p-2 rounded">
+                </div>
+                <div>
+                    <label class="text-sm font-semibold">Fecha de entrega</label>
+                    <input type="date" id="fcFecha" required
+                        class="w-full border p-2 rounded">
+                </div>
+
+                <button type="submit"
+                    class="bg-blue-600 text-white w-full p-3 rounded font-bold">
+                    Crear contrato
+                </button>
+            </form>
+        </div>
+    `;
+
+    document.getElementById("formContrato").addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const body = {
+            agricultorId: document.getElementById("fcAgricultor").value,
+            nombreProducto: document.getElementById("fcProducto").value.trim(),
+            cantidadKg: parseInt(document.getElementById("fcCantidad").value),
+            precioAcordado: parseFloat(document.getElementById("fcPrecio").value),
+            fechaEntrega: document.getElementById("fcFecha").value
+        };
+
+        const res = await fetch(API_CONTRACTS, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify(body)
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            alert(data.message);
+            return;
+        }
+
+        alert("Contrato " + data.codigo + " creado. Espera la respuesta del agricultor.");
+        volverContratos();
+    });
 }
 
 // ======================

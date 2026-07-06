@@ -56,6 +56,12 @@
     <div id="tokensContainer"></div>
 </div>
 
+<!-- CONTRATOS -->
+<div class="bg-white p-4 rounded-xl shadow mb-6">
+    <h2 class="font-bold mb-4">Contratos</h2>
+    <div id="contractsContainer"></div>
+</div>
+
 <!-- MIS FINANCIAMIENTOS -->
 <div class="bg-white p-4 rounded-xl shadow">
     <h2 class="font-bold mb-4">Mis financiamientos</h2>
@@ -95,6 +101,7 @@ const API_PRODUCTS = "http://localhost:3000/api/products";
 const API_ORDERS = "http://localhost:3000/api/orders";
 const API_TOKENS = "http://localhost:3000/api/tokens";
 const API_FINANCING = "http://localhost:3000/api/financiamiento";
+const API_CONTRACTS = "http://localhost:3000/api/contracts";
 const token = localStorage.getItem("token");
 
 // ======================
@@ -459,12 +466,159 @@ async function loadMisFinanciamientos() {
 }
 
 // ======================
+// CONTRATOS
+// ======================
+const estadoBadge = (e) => ({
+    pendiente: "bg-yellow-500",
+    activo: "bg-blue-600",
+    en_produccion: "bg-indigo-500",
+    en_transporte: "bg-purple-500",
+    entregado: "bg-green-600",
+    finalizado: "bg-gray-600",
+    rechazado: "bg-red-600",
+    cancelado: "bg-red-400"
+}[e] || "bg-gray-400");
+
+const estadoLabel = (e) => ({
+    pendiente: "Pendiente",
+    activo: "Activo",
+    en_produccion: "En producción",
+    en_transporte: "En transporte",
+    entregado: "Entregado",
+    finalizado: "Finalizado",
+    rechazado: "Rechazado",
+    cancelado: "Cancelado"
+}[e] || e);
+
+async function loadContratos() {
+    const container = document.getElementById("contractsContainer");
+
+    try {
+        const res = await fetch(API_CONTRACTS + "/agricultor", {
+            headers: { "Authorization": "Bearer " + token }
+        });
+
+        const data = await res.json();
+
+        if (!data.length) {
+            container.innerHTML = "<p class='text-gray-500'>No tienes contratos aún</p>";
+            return;
+        }
+
+        container.innerHTML = data.map(c => `
+            <div class="border p-3 rounded mb-3 ${c.estado === "pendiente" ? "border-yellow-300 bg-yellow-50" : ""}">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p><b>${c.codigo}</b> — ${c.comercio?.nombre || "—"}</p>
+                        <p>${c.nombreProducto} | ${c.cantidadKg} kg | $${c.precioAcordado}/kg</p>
+                        <p class="text-sm text-gray-500">Entrega: ${new Date(c.fechaEntrega).toLocaleDateString()}</p>
+                    </div>
+                    <span class="text-white px-2 py-0.5 rounded text-xs font-bold ${estadoBadge(c.estado)}">
+                        ${estadoLabel(c.estado)}
+                    </span>
+                </div>
+
+                ${c.estado === "pendiente" ? `
+                    <div class="mt-2 flex gap-2">
+                        <button onclick="aceptarContrato('${c._id}')"
+                            class="bg-green-500 text-white px-3 py-1 rounded text-sm font-bold">
+                            Aceptar
+                        </button>
+                        <button onclick="rechazarContrato('${c._id}')"
+                            class="bg-red-500 text-white px-3 py-1 rounded text-sm font-bold">
+                            Rechazar
+                        </button>
+                    </div>
+                ` : (c.estado === "activo" || c.estado === "en_produccion" || c.estado === "en_transporte" || c.estado === "entregado") ? `
+                    <div class="mt-2">
+                        <button onclick="avanzarContrato('${c._id}')"
+                            class="bg-blue-500 text-white px-3 py-1 rounded text-sm font-bold">
+                            Avanzar estado
+                        </button>
+                    </div>
+                ` : ""}
+
+                ${c.historial?.length ? `
+                    <details class="mt-2">
+                        <summary class="text-sm text-gray-500 cursor-pointer">Historial</summary>
+                        ${c.historial.map(h => `
+                            <p class="text-xs text-gray-400 ml-2">
+                                ${h.accion} — ${new Date(h.fecha).toLocaleString()}
+                            </p>
+                        `).join("")}
+                    </details>
+                ` : ""}
+
+                ${c.token ? `
+                    <p class="text-xs text-blue-600 mt-1">Token: ${c.token.codigo || "—"} (${c.token.cantidad || "—"} kg)</p>
+                ` : ""}
+            </div>
+        `).join("");
+
+    } catch (e) {
+        container.innerHTML = "<p class='text-red-500'>Error al cargar contratos</p>";
+    }
+}
+
+async function aceptarContrato(id) {
+    if (!confirm("¿Aceptar este contrato?")) return;
+
+    const res = await fetch(`${API_CONTRACTS}/${id}/aceptar`, {
+        method: "PUT",
+        headers: { "Authorization": "Bearer " + token }
+    });
+
+    if (!res.ok) {
+        const data = await res.json();
+        alert(data.message);
+        return;
+    }
+
+    alert("Contrato aceptado. Se ha generado un token por la cantidad acordada.");
+    loadContratos();
+    loadMisTokens();
+}
+
+async function rechazarContrato(id) {
+    if (!confirm("¿Rechazar este contrato?")) return;
+
+    const res = await fetch(`${API_CONTRACTS}/${id}/rechazar`, {
+        method: "PUT",
+        headers: { "Authorization": "Bearer " + token }
+    });
+
+    if (!res.ok) {
+        const data = await res.json();
+        alert(data.message);
+        return;
+    }
+
+    loadContratos();
+}
+
+async function avanzarContrato(id) {
+    const res = await fetch(`${API_CONTRACTS}/${id}/estado`, {
+        method: "PUT",
+        headers: { "Authorization": "Bearer " + token }
+    });
+
+    if (!res.ok) {
+        const data = await res.json();
+        alert(data.message);
+        return;
+    }
+
+    loadContratos();
+}
+
+// ======================
 // INIT
 // ======================
 loadMyProducts();
 loadPedidosAgricultor();
 loadMisTokens();
 loadMisFinanciamientos();
+loadContratos();
 
 </script>
 

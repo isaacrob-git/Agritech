@@ -2,19 +2,23 @@ const mongoose = require("mongoose");
 
 const contractSchema = new mongoose.Schema(
   {
-    agricultor: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true
+    codigo: {
+      type: String,
+      required: true,
+      unique: true
     },
     comercio: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true
     },
-    producto: {
+    agricultor: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Product",
+      ref: "User",
+      required: true
+    },
+    nombreProducto: {
+      type: String,
       required: true
     },
     cantidadKg: {
@@ -31,9 +35,31 @@ const contractSchema = new mongoose.Schema(
     },
     estado: {
       type: String,
-      enum: ["activo", "completado", "cancelado"],
-      default: "activo"
-    }
+      enum: [
+        "pendiente", "activo", "en_produccion",
+        "en_transporte", "entregado", "finalizado",
+        "rechazado", "cancelado"
+      ],
+      default: "pendiente"
+    },
+    token: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "AssetToken",
+      default: null
+    },
+    historial: [
+      {
+        accion: String,
+        usuario: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
+        },
+        fecha: {
+          type: Date,
+          default: Date.now
+        }
+      }
+    ]
   },
   { timestamps: true }
 );

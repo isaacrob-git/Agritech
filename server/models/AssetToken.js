@@ -10,7 +10,12 @@ const assetTokenSchema = new mongoose.Schema(
     producto: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
-      required: true
+      default: null
+    },
+    contrato: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Contract",
+      default: null
     },
     nombreActivo: {
       type: String,
