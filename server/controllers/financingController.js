@@ -20,6 +20,15 @@ const solicitar = async (req, res) => {
       return res.status(400).json({ message: "El token debe estar disponible" });
     }
 
+    const yaFinanciado = await Financing.findOne({
+      token: tokenId,
+      estado: "aprobado"
+    });
+
+    if (yaFinanciado) {
+      return res.status(400).json({ message: "Este token ya tiene un financiamiento activo" });
+    }
+
     const valorEstimado = token.cantidad * (token.producto?.precioKg || 0);
 
     const financing = await Financing.create({
@@ -93,10 +102,9 @@ const aprobar = async (req, res) => {
     await financing.save();
 
     const token = await AssetToken.findById(financing.token);
-    if (token && token.estado === "Disponible") {
-      token.estado = "Vendido";
+    if (token) {
       token.historial.push({
-        accion: "Comprometido como garantía de financiamiento",
+        accion: "Comprometido como garantía de financiamiento aprobado",
         usuario: req.user.id,
         fecha: new Date()
       });
