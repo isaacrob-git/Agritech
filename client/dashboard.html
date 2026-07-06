@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard CosechaDirecta</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 flex">
+
+<!-- SIDEBAR -->
+<aside class="w-64 bg-green-800 text-white min-h-screen p-4">
+    <h1 class="text-xl font-bold mb-6">CosechaDirecta</h1>
+
+    <nav id="menu" class="space-y-2"></nav>
+
+    <button onclick="logout()" class="mt-10 bg-red-500 w-full p-2 rounded">
+        Salir
+    </button>
+</aside>
+
+<!-- CONTENIDO -->
+<main class="flex-1 p-6">
+    <h2 id="title" class="text-2xl font-bold mb-4">Dashboard</h2>
+    <div id="content"></div>
+</main>
+
+<script src="./assets/js/dashboard.js"></script>
+</body>
+</html>

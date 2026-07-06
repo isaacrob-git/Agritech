@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Marketplace | CosechaDirecta</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 p-6">
+
+<h1 class="text-2xl font-bold mb-4">Marketplace Agrícola</h1>
+
+<!-- SEARCH -->
+<input id="search" placeholder="Buscar producto..."
+class="w-full p-3 border rounded mb-6">
+
+<!-- GRID -->
+<div id="products" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+
+<script>
+const API = "http://localhost:3000/api/products";
+let allProducts = [];
+
+// ----------------------
+// CARGAR MARKETPLACE
+// ----------------------
+async function loadMarketplace() {
+    try {
+        const res = await fetch(API);
+        allProducts = await res.json();
+        render(allProducts);
+    } catch (err) {
+        console.error("Error cargando marketplace:", err);
+    }
+}
+
+// ----------------------
+// RENDER PRODUCTOS
+// ----------------------
+function render(data) {
+    const container = document.getElementById("products");
+
+    container.innerHTML = data.map(p => `
+        <div class="bg-white p-4 rounded shadow">
+
+            <h2 class="font-bold text-lg">${p.nombre}</h2>
+
+            <p class="text-gray-600">📍 ${p.ubicacion}</p>
+
+            <p class="mt-2">
+                <b>Cantidad:</b> ${p.cantidad} kg
+            </p>
+
+            <p>
+                <b>Precio:</b> $${p.precioKg}/kg
+            </p>
+
+            <p class="text-sm text-gray-500 mt-2">
+                Agricultor: ${p.agricultor?.nombre || 'Sin nombre'}
+            </p>
+
+            <button onclick="buy('${p._id}')"
+                class="mt-4 bg-green-600 text-white w-full p-2 rounded">
+                Solicitar compra
+            </button>
+
+        </div>
+    `).join("");
+}
+
+// ----------------------
+// BUSCADOR
+// ----------------------
+document.getElementById("search").addEventListener("input", (e) => {
+    const value = e.target.value.toLowerCase();
+
+    const filtered = allProducts.filter(p =>
+        p.nombre.toLowerCase().includes(value) ||
+        p.ubicacion.toLowerCase().includes(value)
+    );
+
+    render(filtered);
+});
+
+// ----------------------
+// COMPRA (MVP)
+// ----------------------
+async function buy(productId) {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+        alert("Debes iniciar sesión para comprar");
+        return;
+    }
+
+    const cantidad = prompt("Cantidad en kg:");
+
+    if (!cantidad || isNaN(cantidad)) return;
+
+    try {
+        const res = await fetch("http://localhost:3000/api/orders", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+                productoId: productId,
+                cantidad: Number(cantidad)
+            })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            alert(data.message || "Error al crear pedido");
+            return;
+        }
+
+        alert("Pedido creado correctamente");
+
+    } catch (err) {
+        console.error(err);
+        alert("Error de conexión");
+    }
+}
+
+loadMarketplace();
+</script>
+
+</body>
+</html>

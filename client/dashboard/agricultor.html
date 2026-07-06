@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard Agricultor | CosechaDirecta</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-50 p-6">
+
+<h1 class="text-2xl font-bold mb-6">Dashboard Agricultor</h1>
+
+<!-- FORM CREAR PRODUCTO -->
+<div class="bg-white p-4 rounded-xl shadow mb-6">
+    <h2 class="font-bold mb-4">Crear producto</h2>
+
+    <form id="productForm" class="grid gap-3">
+        <input id="nombre" placeholder="Nombre" class="border p-2 rounded" required>
+        <input id="cantidad" type="number" placeholder="Cantidad (kg)" class="border p-2 rounded" required>
+        <input id="precioKg" type="number" placeholder="Precio por Kg" class="border p-2 rounded" required>
+        <input id="ubicacion" placeholder="Ubicación" class="border p-2 rounded" required>
+
+        <button class="bg-green-600 text-white p-2 rounded">
+            Guardar producto
+        </button>
+    </form>
+</div>
+
+<!-- MIS PRODUCTOS -->
+<div class="bg-white p-4 rounded-xl shadow mb-6">
+    <h2 class="font-bold mb-4">Mis productos</h2>
+
+    <table class="w-full text-left">
+        <thead>
+            <tr class="border-b">
+                <th>Nombre</th>
+                <th>Cantidad</th>
+                <th>Precio/kg</th>
+                <th>Ubicación</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+    </table>
+</div>
+
+<!-- PEDIDOS -->
+<div class="bg-white p-4 rounded-xl shadow">
+    <h2 class="font-bold mb-4">Pedidos recibidos</h2>
+    <div id="orders"></div>
+</div>
+
+<script>
+const API_PRODUCTS = "http://localhost:3000/api/products";
+const API_ORDERS = "http://localhost:3000/api/orders";
+const token = localStorage.getItem("token");
+
+// ======================
+// CREAR PRODUCTO
+// ======================
+document.getElementById("productForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const body = {
+        nombre: nombre.value,
+        cantidad: cantidad.value,
+        precioKg: precioKg.value,
+        ubicacion: ubicacion.value
+    };
+
+    const res = await fetch(API_PRODUCTS, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+        alert(data.message);
+        return;
+    }
+
+    alert("Producto creado");
+    loadMyProducts();
+    e.target.reset();
+});
+
+// ======================
+// MIS PRODUCTOS
+// ======================
+async function loadMyProducts() {
+    const res = await fetch(API_PRODUCTS + "/me", {
+        headers: {
+            "Authorization": "Bearer " + token
+        }
+    });
+
+    const data = await res.json();
+
+    const tbody = document.getElementById("tbody");
+    tbody.innerHTML = data.map(p => `
+        <tr class="border-b">
+            <td>${p.nombre}</td>
+            <td>${p.cantidad}</td>
+            <td>${p.precioKg}</td>
+            <td>${p.ubicacion}</td>
+            <td>
+                <button onclick="deleteProduct('${p._id}')"
+                    class="text-red-500">
+                    Eliminar
+                </button>
+            </td>
+        </tr>
+    `).join("");
+}
+
+// ======================
+// ELIMINAR PRODUCTO
+// ======================
+async function deleteProduct(id) {
+    if (!confirm("¿Eliminar producto?")) return;
+
+    const res = await fetch(`${API_PRODUCTS}/${id}`, {
+        method: "DELETE",
+        headers: {
+            "Authorization": "Bearer " + token
+        }
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+        alert(data.message);
+        return;
+    }
+
+    loadMyProducts();
+}
+
+// ======================
+// PEDIDOS AGRICULTOR
+// ======================
+async function loadPedidosAgricultor() {
+    const res = await fetch(API_ORDERS + "/agricultor", {
+        headers: {
+            "Authorization": "Bearer " + token
+        }
+    });
+
+    const data = await res.json();
+
+    const container = document.getElementById("orders");
+
+    if (!data.length) {
+        container.innerHTML = "<p class='text-gray-500'>No hay pedidos aún</p>";
+        return;
+    }
+
+    container.innerHTML = data.map(o => `
+        <div class="border p-3 rounded mb-3">
+
+            <p><b>Producto:</b> ${o.producto.nombre}</p>
+            <p><b>Cantidad:</b> ${o.cantidad} kg</p>
+            <p><b>Comercio:</b> ${o.comercio.nombre}</p>
+            <p><b>Estado:</b> ${o.estado}</p>
+
+            ${o.estado === "pendiente" ? `
+                <div class="mt-2 flex gap-2">
+                    <button onclick="updateStatus('${o._id}', 'aceptado')"
+                        class="bg-green-500 text-white px-3 py-1 rounded">
+                        Aceptar
+                    </button>
+                    <button onclick="updateStatus('${o._id}', 'rechazado')"
+                        class="bg-red-500 text-white px-3 py-1 rounded">
+                        Rechazar
+                    </button>
+                </div>
+            ` : `
+                <span class="inline-block mt-2 px-3 py-1 rounded text-white font-bold
+                    ${o.estado === "aceptado" ? "bg-green-600" : "bg-red-600"}">
+                    ${o.estado === "aceptado" ? "Aceptado" : "Rechazado"}
+                </span>
+            `}
+
+        </div>
+    `).join("");
+}
+
+// ======================
+// ACTUALIZAR ESTADO
+// ======================
+async function updateStatus(id, estado) {
+    const res = await fetch(`${API_ORDERS}/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+        body: JSON.stringify({ estado })
+    });
+    if (!res.ok) {
+        const data = await res.json();
+        alert(data.message);
+    }
+    loadPedidosAgricultor();
+}
+
+// ======================
+// INIT
+// ======================
+loadMyProducts();
+loadPedidosAgricultor();
+
+</script>
+
+</body>
+</html>
