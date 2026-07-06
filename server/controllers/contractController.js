@@ -35,7 +35,8 @@ const getContratosComercio = async (req, res) => {
   try {
     const contracts = await Contract.find({ comercio: req.user.id })
       .populate("agricultor", "nombre email codigo")
-      .populate("historial.usuario", "nombre");
+      .populate("historial.usuario", "nombre")
+      .populate("token");
 
     res.json(contracts);
   } catch (error) {
@@ -47,7 +48,8 @@ const getContratosAgricultor = async (req, res) => {
   try {
     const contracts = await Contract.find({ agricultor: req.user.id })
       .populate("comercio", "nombre email codigo")
-      .populate("historial.usuario", "nombre");
+      .populate("historial.usuario", "nombre")
+      .populate("token");
 
     res.json(contracts);
   } catch (error) {
@@ -173,10 +175,20 @@ const avanzarEstado = async (req, res) => {
       return res.status(400).json({ message: "No se puede avanzar desde el estado actual" });
     }
 
-    const nuevoEstado = workflow[idx + 1];
-    contract.estado = nuevoEstado;
+    const targetState = req.body.estado;
+
+    if (targetState) {
+      const targetIdx = workflow.indexOf(targetState);
+      if (targetIdx === -1 || targetIdx <= idx) {
+        return res.status(400).json({ message: `Transición inválida a ${targetState} desde ${contract.estado}` });
+      }
+      contract.estado = targetState;
+    } else {
+      contract.estado = workflow[idx + 1];
+    }
+
     contract.historial.push({
-      accion: `Avanzado a ${nuevoEstado}`,
+      accion: `Avanzado a ${contract.estado}`,
       usuario: req.user.id,
       fecha: new Date()
     });

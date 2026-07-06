@@ -615,7 +615,7 @@ async function renderNuevoContrato() {
                         class="w-full border p-2 rounded">
                         <option value="">Selecciona un agricultor</option>
                         ${agricultores.map(a => `
-                            <option value="${a._id}">${a.codigo} — ${a.nombre}</option>
+                            <option value="${a._id}">${a.codigo || "—"} — ${a.nombre}</option>
                         `).join("")}
                     </select>
                 </div>
