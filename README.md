@@ -1,2 +1,0 @@
-# Agritech
-Traductores e interpretes
