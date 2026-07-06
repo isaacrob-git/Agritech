@@ -116,6 +116,8 @@ const updateOrderStatus = async (req, res) => {
           const codigoComercio = generarCodigoHijo(token.codigo, indexHijos);
           const codigoAgricultor = generarCodigoHijo(token.codigo, indexHijos + 1);
 
+          const cantidadOriginal = token.cantidad;
+          token.cantidad = order.cantidad;
           token.estado = "Dividido";
           token.historial.push({
             accion: `Dividido automáticamente por pedido`,
@@ -143,7 +145,7 @@ const updateOrderStatus = async (req, res) => {
             codigo: codigoAgricultor,
             producto: token.producto,
             nombreActivo: token.nombreActivo,
-            cantidad: token.cantidad - order.cantidad,
+            cantidad: cantidadOriginal - order.cantidad,
             propietario: order.agricultor,
             padre: token._id,
             historial: [{
