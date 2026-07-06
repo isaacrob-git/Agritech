@@ -288,21 +288,11 @@ async function loadMisTokens() {
     const container = document.getElementById("tokensContainer");
 
     try {
-        const [resTokens, resFin] = await Promise.all([
-            fetch(API_TOKENS + "/mis-tokens", {
-                headers: { "Authorization": "Bearer " + token }
-            }),
-            fetch(API_FINANCING, {
-                headers: { "Authorization": "Bearer " + token }
-            })
-        ]);
+        const res = await fetch(API_TOKENS + "/mis-tokens", {
+            headers: { "Authorization": "Bearer " + token }
+        });
 
-        const data = await resTokens.json();
-        const financings = await resFin.json();
-
-        const tokensFinanciados = new Set(
-            financings.filter(f => f.estado === "aprobado").map(f => f.token?._id)
-        );
+        const data = await res.json();
 
         if (!data.length) {
             container.innerHTML = "<p class='text-gray-500'>No has generado tokens aún</p>";
@@ -327,12 +317,12 @@ async function loadMisTokens() {
                             : "bg-red-600"}">
                             ${t.estado}
                         </span>
-                        ${t.estado === "Disponible" && !tokensFinanciados.has(t._id) ? `
+                        ${t.estado === "Disponible" && !t.financiado ? `
                             <button onclick="abrirFinancing('${t._id}', '${t.codigo}', ${t.cantidad}, ${t.producto?.precioKg || 0})"
                                 class="block mt-2 text-yellow-600 text-sm w-full text-right font-bold">
                                 Solicitar financiamiento
                             </button>
-                        ` : tokensFinanciados.has(t._id) ? `
+                        ` : t.financiado ? `
                             <span class="block mt-2 text-blue-600 text-sm w-full text-right font-bold">
                                 Comprometido como garantía
                             </span>

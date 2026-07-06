@@ -103,6 +103,7 @@ const aprobar = async (req, res) => {
 
     const token = await AssetToken.findById(financing.token);
     if (token) {
+      token.financiado = true;
       token.historial.push({
         accion: "Comprometido como garantía de financiamiento aprobado",
         usuario: req.user.id,

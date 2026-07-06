@@ -133,6 +133,7 @@ const updateOrderStatus = async (req, res) => {
             cantidad: order.cantidad,
             propietario: order.comercio,
             estado: "Vendido",
+            financiado: token.financiado,
             padre: token._id,
             historial: [{
               accion: `Creado por compra de ${order.cantidad} kg`,
@@ -147,6 +148,7 @@ const updateOrderStatus = async (req, res) => {
             nombreActivo: token.nombreActivo,
             cantidad: cantidadOriginal - order.cantidad,
             propietario: order.agricultor,
+            financiado: token.financiado,
             padre: token._id,
             historial: [{
               accion: `Remanente tras venta de ${order.cantidad} kg`,

@@ -34,6 +34,10 @@ const assetTokenSchema = new mongoose.Schema(
       ref: "AssetToken",
       default: null
     },
+    financiado: {
+      type: Boolean,
+      default: false
+    },
     estado: {
       type: String,
       enum: ["Disponible", "Vendido", "Transferido", "Dividido", "Cancelado"],
