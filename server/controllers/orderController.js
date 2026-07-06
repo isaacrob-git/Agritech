@@ -130,6 +130,7 @@ const updateOrderStatus = async (req, res) => {
             nombreActivo: token.nombreActivo,
             cantidad: order.cantidad,
             propietario: order.comercio,
+            estado: "Vendido",
             padre: token._id,
             historial: [{
               accion: `Creado por compra de ${order.cantidad} kg`,
