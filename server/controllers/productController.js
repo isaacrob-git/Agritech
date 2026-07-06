@@ -1,4 +1,5 @@
 const Product = require('../models/Product');
+const AssetToken = require('../models/AssetToken');
 
 // Crear producto agrícola
 const createProduct = async (req, res) => {
@@ -60,6 +61,20 @@ const deleteProduct = async (req, res) => {
     if (product.agricultor.toString() !== req.user.id) {
       return res.status(403).json({ message: 'No autorizado' });
     }
+
+    await AssetToken.updateMany(
+      { producto: product._id, estado: "Disponible" },
+      {
+        $set: { estado: "Cancelado" },
+        $push: {
+          historial: {
+            accion: "Cancelado por eliminación del producto",
+            usuario: req.user.id,
+            fecha: new Date()
+          }
+        }
+      }
+    );
 
     await product.deleteOne();
 
