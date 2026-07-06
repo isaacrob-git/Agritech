@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard | Cosecha Directa</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="container">
+    <div class="card header-card">
+        <div>
+            <h2 class="title-green">🚚🌱 DASHBOARD</h2>
+            <p>Bienvenido, <strong><%= user.name %></strong></p>
+        </div>
+        <div class="header-actions">
+            <a href="/logout" class="btn btn-secondary btn-small">Cerrar sesión</a>
+        </div>
+    </div>
+
+    <% if (user.role === 'admin') { %>
+        <div class="card">
+            <h3>Añadir Nuevo Producto</h3>
+            <form action="/admin/add-product" method="POST" class="form-add-product">
+                <input type="text" name="name" placeholder="Nombre" required class="select-status">
+                <input type="number" name="price" placeholder="Precio" required class="select-status">
+                <input type="number" name="quantity" placeholder="Stock" required class="select-status">
+                <button type="submit" class="btn btn-primary">Guardar</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h3>Gestión de Productos</h3>
+            <table class="styled-table">
+                <thead><tr><th>Nombre</th><th>Precio</th><th>Stock</th><th>Acciones</th></tr></thead>
+                <tbody>
+                    <% products.forEach(p => { %>
+                        <tr>
+                            <td><%= p.name %></td>
+                            <td>
+                                <form action="/admin/edit-product/<%= p.id %>" method="POST">
+                                    <input type="number" name="price" value="<%= p.price %>" style="width: 70px;">
+                                    <button type="submit" class="btn-action btn-ok">Actualizar</button>
+                                </form>
+                            </td>
+                            <td><%= p.quantity %></td>
+                            <td>
+                                <form action="/admin/delete-product/<%= p.id %>" method="POST" onsubmit="return confirm('¿Eliminar?');">
+                                    <button type="submit" class="btn-action btn-del">Eliminar</button>
+                                </form>
+                            </td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+    <% } %>
+
+    <% if (user.role !== 'admin' && cart && cart.length > 0) { %>
+    <div class="card" style="border: 2px solid #28a745;">
+        <h3>🛒 Tu Carrito (<%= cart.length %> items)</h3>
+        <p>Total acumulado: <strong>$<%= cart.reduce((a,b)=>a+b.price, 0).toFixed(2) %></strong></p>
+        <form id="checkoutForm" action="/cart/checkout" method="POST">
+            <button type="submit" class="btn btn-primary mt-2">Finalizar Compra</button>
+        </form>
+    </div>
+<% } %>
+
+    <h3>Productos Disponibles</h3>
+    <div class="grid-products">
+        <% products.forEach(p => { %>
+            <div class="card">
+                <h4><%= p.name %></h4>
+                <p>Precio: <strong>$<%= p.price %></strong></p>
+                <p>Stock: <%= p.quantity %></p>
+                <% if (user.role !== 'admin') { %>
+                    <form action="/cart/add" method="POST">
+                        <input type="hidden" name="productId" value="<%= p.id %>">
+                        <input type="hidden" name="name" value="<%= p.name %>">
+                        <input type="hidden" name="price" value="<%= p.price %>">
+                        <button type="submit" class="btn btn-secondary btn-full mt-2">🛒 Agregar</button>
+                    </form>
+                <% } %>
+            </div>
+        <% }) %>
+    </div>
+
+        <h3 class="text-center mt-4">Gestión de Estados de Pedidos</h3>
+
+    <div class="card mt-4">
+    <table class="styled-table">
+        <thead>
+            <tr>
+                <th>Factura</th>
+                <th>Cliente</th>
+                <th>Estado Actual</th>
+                <% if (user.role === 'admin') { %>
+                    <th>Cambiar Estado</th>
+                    <th>Acciones</th>
+                <% } %>
+            </tr>
+        </thead>
+        <tbody>
+            <% invoices.forEach(inv => { %>
+                <tr>
+                    <td>#<%= inv.invoice_id.split('-')[1] %></td>
+                    <td><%= inv.buyer_name %></td>
+                    <td><strong><%= inv.status || 'Pendiente' %></strong></td>
+                    
+                    <% if (user.role === 'admin') { %>
+                        <td>
+                            <select name="status" class="status-selector" data-id="<%= inv.invoice_id %>">
+                                <option value="pendiente" <%= inv.status === 'pendiente' ? 'selected' : '' %>>Pendiente</option>
+                                <option value="en_camino" <%= inv.status === 'en_camino' ? 'selected' : '' %>>En camino</option>
+                                <option value="entregado" <%= inv.status === 'entregado' ? 'selected' : '' %>>Entregado</option>
+                            </select>
+                        </td>
+                        <td>
+                            <form action="/delete-invoice/<%= inv.invoice_id %>" method="POST" onsubmit="return confirm('¿Eliminar factura?');">
+                                <button type="submit" class="btn btn-danger btn-small">🗑️ Eliminar</button>
+                            </form>
+                        </td>
+                    <% } %>
+                </tr>
+            <% }) %>
+        </tbody>
+    </table>
+</div>
+
+
+
+<h3 class="text-center mt-4">Mis AgriTokens</h3>
+<div class="card mt-4"> <div>
+        
+        
+        <table class="styled-table"> 
+            <thead>
+                <tr>
+                    <th>ID Token</th>
+                    <th>Factura Asociada</th>
+                    <th>Cliente</th>
+                    <th>Valor Respaldo</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% myTokens.forEach(token => { %>
+                    <tr>
+                        <td><%= token.id_token %></td>
+                        <td><%= token.invoice_id %></td>
+                        <td><%= token.buyer_name || 'N/A' %></td>
+                        <td>$<%= token.valor_respaldo.toFixed(2) %></td>
+                        <td><%= token.estado %></td>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+    <h3 class="text-center mt-4">Compras Realizadas</h3>
+<div class="card mt-4" >
+    <div>
+        <% if (typeof invoices !== 'undefined' && invoices.length > 0) { %>
+            <table class="styled-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Comprador</th>
+                        <th>Fecha</th>
+                        <th>Total</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% invoices.forEach(inv => { %>
+                        <tr>
+                            <td>#<%= inv.invoice_id.split('-')[1] %></td> <td><%= inv.buyer_name %></td> <td><%= inv.date %></td>
+                            <td>$<%= inv.total.toFixed(2) %></td>
+                            <td class="action-cell">
+    <a href="/invoice/<%= inv.invoice_id %>" class="btn btn-primary btn-small" target="_blank">📄 Ver</a>
+    
+    <% if (user.role === 'admin') { %>
+        <form action="/delete-invoice/<%= inv.invoice_id %>" method="POST" onsubmit="return confirm('¿Eliminar factura?');">
+            <button type="submit" class="btn btn-danger btn-small">🗑️</button>
+        </form>
+    <% } %>
+</td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        <% } %>
+    </div>
+</div>
+
+<% if (user.role === 'admin') { %>
+        <h3 class="text-center mt-4">Auditoría del Sistema (Logs)</h3>
+<div class="card mt-4" >
+        <div>
+            <table class="styled-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Acción</th>
+                        <th>ID Usuario</th>
+                        <th>Cliente</th>
+                    </tr>
+                </thead>
+                <tbody>
+    <% systemLogs.forEach(log => { %>
+        <tr>
+            <td><%= log.fecha %></td>
+            <td><%= log.action %></td>
+            <td><%= log.user_id %></td>
+            <td><%= log.user_name ? log.user_name : 'Sistema' %></td>
+        </tr>
+    <% }); %>
+</tbody>
+            </table>
+        </div>
+    </div>
+<% } %>
+
+</body>
+
+<script>
+    document.querySelectorAll('.status-selector').forEach(select => {
+        select.addEventListener('change', function() {
+            const invoiceId = this.getAttribute('data-id');
+            const status = this.value;
+
+            // Enviamos los datos usando 'fetch' (es más limpio y no recarga la página)
+            fetch('/admin/update-status/' + invoiceId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'status=' + status
+            }).then(() => {
+                // Recargamos la página para que se vean los cambios
+                window.location.reload();
+            }).catch(err => {
+                console.error('Error al actualizar:', err);
+                alert('No se pudo actualizar el estado.');
+            });
+        });
+    });
+</script>
+</html>

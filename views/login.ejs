@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+	<head>
+		<link rel="stylesheet" href="/css/style.css" />
+	</head>
+	<body class="login-page">
+		<div class="login-wrapper">
+			<div class="card login-card">
+				<h2>CosechaDirecta</h2>
+				<p>Campo → Comercio</p>
+				<form action="/login" method="POST">
+					<label>Email</label>
+					<input type="email" name="email" class="input" required />
+					<label>Password</label>
+					<input
+						type="password"
+						name="password"
+						class="input"
+						required
+					/>
+					<button type="submit" class="btn btn-primary btn-full">
+						Entrar
+					</button>
+				</form>
+				<p class="register-link">¿Aún no tienes cuenta?</p>
+				<a href="/register" class="btn btn-secondary btn-full"
+					>Registrarse ahora</a
+				>
+			</div>
+		</div>
+	</body>
+</html>
