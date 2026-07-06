@@ -27,6 +27,9 @@ app.use("/api/contracts", contractRoutes);
 const assetTokenRoutes = require("./routes/assetTokenRoutes");
 app.use("/api/tokens", assetTokenRoutes);
 
+const financingRoutes = require("./routes/financingRoutes");
+app.use("/api/financiamiento", financingRoutes);
+
 app.get("/", (req, res) => {
     res.send("API CosechaDirecta funcionando 🚀");
 });

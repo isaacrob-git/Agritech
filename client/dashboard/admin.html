@@ -1,17 +1,187 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Admin</title>
+<meta charset="UTF-8">
+<title>Dashboard Admin | CosechaDirecta</title>
+<script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
 
-<h1>Dashboard Admin 🌾</h1>
+<body class="bg-gray-50 flex min-h-screen">
 
+<aside class="w-64 bg-green-800 text-white p-4 flex flex-col">
+    <h1 class="text-xl font-bold mb-6">CosechaDirecta</h1>
 
-<script src="../assets/js/auth.js"></script>
+    <nav class="space-y-2 flex-1">
+        <button onclick="navigate('Dashboard')" class="nav-btn block w-full text-left p-2 rounded hover:bg-green-700">
+            Dashboard
+        </button>
+        <button onclick="navigate('Financiamientos')" class="nav-btn block w-full text-left p-2 rounded hover:bg-green-700">
+            Financiamientos
+        </button>
+        <button onclick="navigate('Perfil')" class="nav-btn block w-full text-left p-2 rounded hover:bg-green-700">
+            Perfil
+        </button>
+    </nav>
+
+    <button onclick="cerrarSesion()" class="bg-red-500 w-full p-2 rounded hover:bg-red-600">
+        Salir
+    </button>
+</aside>
+
+<main class="flex-1 p-6">
+    <h2 id="title" class="text-2xl font-bold mb-4">Dashboard</h2>
+    <div id="content"></div>
+</main>
+
 <script>
-    verificarSesion();
+const API_FINANCING = "http://localhost:3000/api/financiamiento";
+const token = localStorage.getItem("token");
+const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+if (!token || !user) {
+    window.location.href = "../login.html";
+}
+
+function navigate(section) {
+    document.getElementById("title").innerText = section;
+
+    const fns = {
+        "Dashboard": renderDashboard,
+        "Financiamientos": renderFinanciamientos,
+        "Perfil": renderPerfil
+    };
+
+    if (fns[section]) fns[section]();
+}
+
+function renderDashboard() {
+    const content = document.getElementById("content");
+    content.innerHTML = `
+        <div class="bg-white p-6 rounded-xl shadow">
+            <p class="text-xl font-bold">Bienvenido, ${user.nombre || "Admin"}</p>
+            <p class="text-gray-500 mt-2">Panel de administración de CosechaDirecta</p>
+        </div>
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4" id="statsBox"></div>
+    `;
+
+    fetch(API_FINANCING + "/pendientes", {
+        headers: { "Authorization": "Bearer " + token }
+    })
+    .then(r => r.json())
+    .then(data => {
+        document.getElementById("statsBox").innerHTML = `
+            <div class="bg-white p-6 rounded-xl shadow">
+                <p class="text-gray-500 text-sm">Solicitudes pendientes</p>
+                <p class="text-3xl font-bold">${data.length}</p>
+            </div>
+        `;
+    })
+    .catch(() => {});
+}
+
+async function renderFinanciamientos() {
+    const content = document.getElementById("content");
+    content.innerHTML = "<p class='text-gray-500'>Cargando...</p>";
+
+    try {
+        const res = await fetch(API_FINANCING + "/pendientes", {
+            headers: { "Authorization": "Bearer " + token }
+        });
+
+        const data = await res.json();
+
+        if (!data.length) {
+            content.innerHTML = "<p class='text-gray-500'>No hay solicitudes pendientes</p>";
+            return;
+        }
+
+        content.innerHTML = data.map(f => `
+            <div class="border border-yellow-300 bg-yellow-50 p-4 rounded-xl mb-3">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p><b>Agricultor:</b> ${f.agricultor?.nombre || "—"} (${f.agricultor?.codigo || "—"})</p>
+                        <p><b>Email:</b> ${f.agricultor?.email || "—"}</p>
+                        <p><b>Token:</b> ${f.token?.codigo || "—"} — ${f.token?.producto?.nombre || "—"}</p>
+                        <p><b>Valor estimado:</b> $${f.valorEstimado}</p>
+                        <p><b>Solicitado:</b> $${f.montoSolicitado}</p>
+                        <p><b>Plazo:</b> ${f.plazoDias} días | <b>Interés:</b> ${f.interes}%</p>
+                    </div>
+                    <span class="bg-yellow-500 text-white px-3 py-1 rounded text-sm font-bold">${f.estado}</span>
+                </div>
+                <div class="flex gap-2 mt-3">
+                    <button onclick="aprobarFinanciamiento('${f._id}')"
+                        class="bg-green-600 text-white px-4 py-2 rounded font-bold">
+                        Aprobar
+                    </button>
+                    <button onclick="rechazarFinanciamiento('${f._id}')"
+                        class="bg-red-600 text-white px-4 py-2 rounded font-bold">
+                        Rechazar
+                    </button>
+                </div>
+            </div>
+        `).join("");
+
+    } catch (e) {
+        content.innerHTML = "<p class='text-red-500'>Error al cargar solicitudes</p>";
+    }
+}
+
+async function aprobarFinanciamiento(id) {
+    if (!confirm("¿Aprobar este financiamiento?")) return;
+
+    const res = await fetch(`${API_FINANCING}/${id}/aprobar`, {
+        method: "PUT",
+        headers: { "Authorization": "Bearer " + token }
+    });
+
+    if (!res.ok) {
+        const data = await res.json();
+        alert(data.message);
+        return;
+    }
+
+    alert("Financiamiento aprobado");
+    renderFinanciamientos();
+}
+
+async function rechazarFinanciamiento(id) {
+    if (!confirm("¿Rechazar este financiamiento?")) return;
+
+    const res = await fetch(`${API_FINANCING}/${id}/rechazar`, {
+        method: "PUT",
+        headers: { "Authorization": "Bearer " + token }
+    });
+
+    if (!res.ok) {
+        const data = await res.json();
+        alert(data.message);
+        return;
+    }
+
+    alert("Financiamiento rechazado");
+    renderFinanciamientos();
+}
+
+function renderPerfil() {
+    const content = document.getElementById("content");
+    content.innerHTML = `
+        <div class="bg-white p-6 rounded-xl shadow max-w-md">
+            <p class="text-2xl font-bold mb-4">${user.nombre || "—"}</p>
+            <div class="space-y-2">
+                <p><b>Código:</b> ${user.codigo || "—"}</p>
+                <p><b>Email:</b> ${user.email || "—"}</p>
+                <p><b>Rol:</b> ${user.rol || "—"}</p>
+            </div>
+        </div>
+    `;
+}
+
+function cerrarSesion() {
+    localStorage.clear();
+    window.location.href = "../login.html";
+}
+
+navigate("Dashboard");
 </script>
 
 </body>
