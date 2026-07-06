@@ -6,7 +6,7 @@ const solicitar = async (req, res) => {
   try {
     const { tokenId, montoSolicitado, plazoDias } = req.body;
 
-    const token = await AssetToken.findById(tokenId).populate("producto");
+    const token = await AssetToken.findById(tokenId).populate("producto").populate("contrato");
 
     if (!token) {
       return res.status(404).json({ message: "Token no encontrado" });
@@ -29,7 +29,7 @@ const solicitar = async (req, res) => {
       return res.status(400).json({ message: "Este token ya tiene un financiamiento activo" });
     }
 
-    const valorEstimado = token.cantidad * (token.producto?.precioKg || 0);
+    const valorEstimado = token.cantidad * (token.producto?.precioKg || token.contrato?.precioAcordado || 0);
 
     const financing = await Financing.create({
       agricultor: req.user.id,
@@ -57,7 +57,10 @@ const getMisFinanciamientos = async (req, res) => {
     const list = await Financing.find({ agricultor: req.user.id })
       .populate({
         path: "token",
-        populate: { path: "producto", select: "nombre" }
+        populate: [
+          { path: "producto", select: "nombre" },
+          { path: "contrato", select: "nombreProducto cantidadKg precioAcordado" }
+        ]
       });
 
     res.json(list);
@@ -72,7 +75,10 @@ const getPendientes = async (req, res) => {
       .populate("agricultor", "nombre email codigo")
       .populate({
         path: "token",
-        populate: { path: "producto", select: "nombre" }
+        populate: [
+          { path: "producto", select: "nombre" },
+          { path: "contrato", select: "nombreProducto cantidadKg precioAcordado" }
+        ]
       });
 
     res.json(list);

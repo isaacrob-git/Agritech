@@ -325,7 +325,7 @@ async function loadMisTokens() {
                             ${t.estado}
                         </span>
                         ${t.estado === "Disponible" && !t.financiado ? `
-                            <button onclick="abrirFinancing('${t._id}', '${t.codigo}', ${t.cantidad}, ${t.producto?.precioKg || 0})"
+                            <button onclick="abrirFinancing('${t._id}', '${t.codigo}', ${t.cantidad}, ${t.producto?.precioKg || t.contrato?.precioAcordado || 0})"
                                 class="block mt-2 text-yellow-600 text-sm w-full text-right font-bold">
                                 Solicitar financiamiento
                             </button>
