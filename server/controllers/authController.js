@@ -12,9 +12,13 @@ const register = async (req, res) => {
       return res.status(400).json({ message: "Usuario ya existe" });
     }
 
+    const userCount = await User.countDocuments();
+    const codigo = `USR-${String(userCount + 1).padStart(4, "0")}`;
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await User.create({
+      codigo,
       nombre,
       email,
       password: hashedPassword,
@@ -25,6 +29,7 @@ const register = async (req, res) => {
       message: "Usuario creado",
       user: {
         id: user._id,
+        codigo: user.codigo,
         nombre: user.nombre,
         email: user.email,
         rol: user.rol
@@ -67,6 +72,7 @@ const login = async (req, res) => {
       token,
       user: {
         id: user._id,
+        codigo: user.codigo,
         nombre: user.nombre,
         email: user.email,
         rol: user.rol

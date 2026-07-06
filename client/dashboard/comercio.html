@@ -28,6 +28,9 @@
         <button onclick="navigate('Contratos')" class="nav-btn block w-full text-left p-2 rounded hover:bg-green-700">
             Contratos
         </button>
+        <button onclick="navigate('Tokens')" class="nav-btn block w-full text-left p-2 rounded hover:bg-green-700">
+            Tokens
+        </button>
         <button onclick="navigate('Perfil')" class="nav-btn block w-full text-left p-2 rounded hover:bg-green-700">
             Perfil
         </button>
@@ -48,6 +51,7 @@
 const API_PRODUCTS = "http://localhost:3000/api/products";
 const API_ORDERS = "http://localhost:3000/api/orders";
 const API_CONTRACTS = "http://localhost:3000/api/contracts";
+const API_TOKENS = "http://localhost:3000/api/tokens";
 const API_URL = "http://localhost:3000/api";
 const token = localStorage.getItem("token");
 const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -91,6 +95,7 @@ function navigate(section) {
         "Carrito": renderCarrito,
         "Mis pedidos": renderMisPedidos,
         "Contratos": renderContratos,
+        "Tokens": renderTokens,
         "Perfil": renderPerfil
     };
 
@@ -400,6 +405,74 @@ async function renderContratos() {
 }
 
 // ======================
+// TOKENS
+// ======================
+async function renderTokens() {
+    const content = document.getElementById("content");
+    content.innerHTML = "<p class='text-gray-500'>Cargando tokens...</p>";
+
+    try {
+        const [resDisponibles, resMios] = await Promise.all([
+            fetch(API_TOKENS),
+            fetch(API_TOKENS + "/mis-tokens", {
+                headers: { "Authorization": "Bearer " + token }
+            })
+        ]);
+
+        const disponibles = await resDisponibles.json();
+        const mios = await resMios.json();
+
+        content.innerHTML = `
+            <div class="mb-6">
+                <h3 class="font-bold text-lg mb-3">Tokens disponibles (${disponibles.length})</h3>
+                ${disponibles.length ? `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        ${disponibles.map(t => `
+                            <div class="border border-green-300 bg-green-50 p-4 rounded-xl">
+                                <p><b class="text-lg">${t.codigo}</b></p>
+                                <p><b>Activo:</b> ${t.nombreActivo}</p>
+                                <p><b>Cantidad:</b> ${t.cantidad} ${t.unidad}</p>
+                                <p><b>Agricultor:</b> ${t.propietario?.nombre || "—"}</p>
+                                <span class="inline-block mt-2 bg-green-600 text-white px-3 py-1 rounded text-sm font-bold">
+                                    ${t.estado}
+                                </span>
+                            </div>
+                        `).join("")}
+                    </div>
+                ` : "<p class='text-gray-500'>No hay tokens disponibles</p>"}
+            </div>
+
+            <div>
+                <h3 class="font-bold text-lg mb-3">Mis tokens (${mios.length})</h3>
+                ${mios.length ? `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        ${mios.map(t => `
+                            <div class="border p-4 rounded-xl
+                                ${t.estado === "Disponible" ? "bg-green-50 border-green-300"
+                                : t.estado === "Vendido" ? "bg-blue-50 border-blue-300"
+                                : "bg-gray-50 border-gray-300"}">
+                                <p><b class="text-lg">${t.codigo}</b></p>
+                                <p><b>Activo:</b> ${t.nombreActivo}</p>
+                                <p><b>Cantidad:</b> ${t.cantidad} ${t.unidad}</p>
+                                <span class="inline-block mt-2 text-white px-3 py-1 rounded text-sm font-bold
+                                    ${t.estado === "Disponible" ? "bg-green-600"
+                                    : t.estado === "Vendido" ? "bg-blue-600"
+                                    : "bg-gray-600"}">
+                                    ${t.estado}
+                                </span>
+                            </div>
+                        `).join("")}
+                    </div>
+                ` : "<p class='text-gray-500'>No posees tokens</p>"}
+            </div>
+        `;
+
+    } catch (e) {
+        content.innerHTML = "<p class='text-red-500'>Error al cargar tokens</p>";
+    }
+}
+
+// ======================
 // PERFIL
 // ======================
 function renderPerfil() {
@@ -408,6 +481,7 @@ function renderPerfil() {
         <div class="bg-white p-6 rounded-xl shadow max-w-md">
             <p class="text-2xl font-bold mb-4">${user.nombre || "—"}</p>
             <div class="space-y-2">
+                <p><b>Código:</b> ${user.codigo || "—"}</p>
                 <p><b>Email:</b> ${user.email || "—"}</p>
                 <p><b>Rol:</b> ${user.rol || "—"}</p>
             </div>

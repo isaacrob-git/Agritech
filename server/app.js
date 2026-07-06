@@ -24,6 +24,9 @@ app.use("/api/orders", orderRoutes);
 const contractRoutes = require("./routes/contractRoutes");
 app.use("/api/contracts", contractRoutes);
 
+const assetTokenRoutes = require("./routes/assetTokenRoutes");
+app.use("/api/tokens", assetTokenRoutes);
+
 app.get("/", (req, res) => {
     res.send("API CosechaDirecta funcionando 🚀");
 });

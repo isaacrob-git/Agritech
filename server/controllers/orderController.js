@@ -1,5 +1,6 @@
 const Order = require("../models/Order");
 const Product = require("../models/Product");
+const AssetToken = require("../models/AssetToken");
 
 // CREAR PEDIDO (COMERCIO)
 const createOrder = async (req, res) => {
@@ -68,7 +69,7 @@ const updateOrderStatus = async (req, res) => {
       return res.status(403).json({ message: "No autorizado" });
     }
 
-    // Si se acepta, descontar del inventario
+    // Si se acepta, descontar del inventario y dividir token
     if (estado === "aceptado") {
       const product = await Product.findById(order.producto._id);
 
@@ -81,6 +82,77 @@ const updateOrderStatus = async (req, res) => {
         product.estado = "vendido";
       }
       await product.save();
+
+      // Buscar token disponible del producto para dividirlo automáticamente
+      const token = await AssetToken.findOne({
+        producto: order.producto._id,
+        estado: "Disponible",
+        propietario: order.agricultor
+      });
+
+      if (token) {
+        if (order.cantidad >= token.cantidad) {
+          // Transferir el token completo al comercio
+          token.propietario = order.comercio;
+          token.estado = "Vendido";
+          token.historial.push({
+            accion: `Transferido a ${order.comercio} por pedido`,
+            usuario: order.agricultor,
+            fecha: new Date()
+          });
+          await token.save();
+        } else {
+          // Dividir token: una parte para el comercio, el resto para el agricultor
+          const indexHijos = await AssetToken.countDocuments({ padre: token._id });
+
+          function generarCodigoHijo(codigoPadre, index) {
+            const letra = String.fromCharCode(65 + index);
+            if (/[A-Z]$/.test(codigoPadre)) {
+              return `${codigoPadre}-${index + 1}`;
+            }
+            return `${codigoPadre}${letra}`;
+          }
+
+          const codigoComercio = generarCodigoHijo(token.codigo, indexHijos);
+          const codigoAgricultor = generarCodigoHijo(token.codigo, indexHijos + 1);
+
+          token.estado = "Dividido";
+          token.historial.push({
+            accion: `Dividido automáticamente por pedido`,
+            usuario: order.agricultor,
+            fecha: new Date()
+          });
+          await token.save();
+
+          await AssetToken.create({
+            codigo: codigoComercio,
+            producto: token.producto,
+            nombreActivo: token.nombreActivo,
+            cantidad: order.cantidad,
+            propietario: order.comercio,
+            padre: token._id,
+            historial: [{
+              accion: `Creado por compra de ${order.cantidad} kg`,
+              usuario: order.comercio,
+              fecha: new Date()
+            }]
+          });
+
+          await AssetToken.create({
+            codigo: codigoAgricultor,
+            producto: token.producto,
+            nombreActivo: token.nombreActivo,
+            cantidad: token.cantidad - order.cantidad,
+            propietario: order.agricultor,
+            padre: token._id,
+            historial: [{
+              accion: `Remanente tras venta de ${order.cantidad} kg`,
+              usuario: order.agricultor,
+              fecha: new Date()
+            }]
+          });
+        }
+      }
     }
 
     order.estado = estado;

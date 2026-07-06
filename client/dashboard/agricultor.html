@@ -45,14 +45,21 @@
 </div>
 
 <!-- PEDIDOS -->
-<div class="bg-white p-4 rounded-xl shadow">
+<div class="bg-white p-4 rounded-xl shadow mb-6">
     <h2 class="font-bold mb-4">Pedidos recibidos</h2>
     <div id="orders"></div>
+</div>
+
+<!-- MIS TOKENS -->
+<div class="bg-white p-4 rounded-xl shadow">
+    <h2 class="font-bold mb-4">Mis tokens</h2>
+    <div id="tokensContainer"></div>
 </div>
 
 <script>
 const API_PRODUCTS = "http://localhost:3000/api/products";
 const API_ORDERS = "http://localhost:3000/api/orders";
+const API_TOKENS = "http://localhost:3000/api/tokens";
 const token = localStorage.getItem("token");
 
 // ======================
@@ -108,9 +115,13 @@ async function loadMyProducts() {
             <td>${p.cantidad}</td>
             <td>${p.precioKg}</td>
             <td>${p.ubicacion}</td>
-            <td>
+            <td class="flex gap-2">
+                <button onclick="tokenizarProducto('${p._id}')"
+                    class="text-blue-500 text-sm">
+                    Tokenizar
+                </button>
                 <button onclick="deleteProduct('${p._id}')"
-                    class="text-red-500">
+                    class="text-red-500 text-sm">
                     Eliminar
                 </button>
             </td>
@@ -207,10 +218,93 @@ async function updateStatus(id, estado) {
 }
 
 // ======================
+// TOKENIZAR PRODUCTO
+// ======================
+async function tokenizarProducto(productoId) {
+    if (!confirm("¿Generar token para este producto?")) return;
+
+    const res = await fetch(API_TOKENS + "/generate", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({ productoId })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+        alert(data.message);
+        return;
+    }
+
+    alert("Token " + data.codigo + " creado correctamente");
+    loadMisTokens();
+}
+
+// ======================
+// MIS TOKENS
+// ======================
+async function loadMisTokens() {
+    const container = document.getElementById("tokensContainer");
+
+    try {
+        const res = await fetch(API_TOKENS + "/mis-tokens", {
+            headers: { "Authorization": "Bearer " + token }
+        });
+
+        const data = await res.json();
+
+        if (!data.length) {
+            container.innerHTML = "<p class='text-gray-500'>No has generado tokens aún</p>";
+            return;
+        }
+
+        container.innerHTML = data.map(t => `
+            <div class="border p-3 rounded mb-3">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p><b>Código:</b> ${t.codigo}</p>
+                        <p><b>Activo:</b> ${t.nombreActivo}</p>
+                        <p><b>Cantidad:</b> ${t.cantidad} ${t.unidad}</p>
+                        <p><b>Producto:</b> ${t.producto?.nombre || "—"}</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-white px-3 py-1 rounded text-sm font-bold
+                            ${t.estado === "Disponible" ? "bg-green-600"
+                            : t.estado === "Vendido" ? "bg-blue-600"
+                            : t.estado === "Transferido" ? "bg-yellow-500"
+                            : t.estado === "Dividido" ? "bg-purple-600"
+                            : "bg-red-600"}">
+                            ${t.estado}
+                        </span>
+                    </div>
+                </div>
+                ${t.historial?.length ? `
+                    <details class="mt-2">
+                        <summary class="text-sm text-gray-500 cursor-pointer">Historial</summary>
+                        ${t.historial.map(h => `
+                            <p class="text-xs text-gray-400 ml-2">
+                                ${h.accion} — ${new Date(h.fecha).toLocaleString()}
+                            </p>
+                        `).join("")}
+                    </details>
+                ` : ""}
+            </div>
+        `).join("");
+
+    } catch (e) {
+        container.innerHTML = "<p class='text-red-500'>Error al cargar tokens</p>";
+    }
+}
+
+// ======================
 // INIT
 // ======================
 loadMyProducts();
 loadPedidosAgricultor();
+loadMisTokens();
 
 </script>
 
