@@ -30,6 +30,9 @@ app.use("/api/tokens", assetTokenRoutes);
 const financingRoutes = require("./routes/financingRoutes");
 app.use("/api/financiamiento", financingRoutes);
 
+const tripRoutes = require("./routes/tripRoutes");
+app.use("/api/trips", tripRoutes);
+
 app.get("/", (req, res) => {
     res.send("API CosechaDirecta funcionando 🚀");
 });

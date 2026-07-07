@@ -32,7 +32,11 @@ const getOrdersAgricultor = async (req, res) => {
   try {
     const orders = await Order.find({ agricultor: req.user.id })
       .populate("producto")
-      .populate("comercio", "nombre email");
+      .populate("comercio", "nombre email")
+      .populate({
+        path: "viaje",
+        populate: { path: "transportista", select: "nombre" }
+      });
 
     res.json(orders);
 
@@ -46,7 +50,11 @@ const getOrdersComercio = async (req, res) => {
   try {
     const orders = await Order.find({ comercio: req.user.id })
       .populate("producto")
-      .populate("agricultor", "nombre email");
+      .populate("agricultor", "nombre email")
+      .populate({
+        path: "viaje",
+        populate: { path: "transportista", select: "nombre" }
+      });
 
     res.json(orders);
 

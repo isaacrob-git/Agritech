@@ -27,8 +27,14 @@ const orderSchema = new mongoose.Schema(
 
     estado: {
       type: String,
-      enum: ["pendiente", "aceptado", "rechazado"],
+      enum: ["pendiente", "aceptado", "rechazado", "en_transporte", "entregado"],
       default: "pendiente"
+    },
+
+    viaje: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Trip",
+      default: null
     }
   },
   { timestamps: true }
