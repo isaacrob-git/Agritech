@@ -262,6 +262,10 @@ async function renderMisViajes() {
                                     class="bg-blue-500 text-white px-2 py-1 rounded text-xs">
                                     Ver
                                 </button>
+                                <button onclick="imprimirComprobanteViaje('${t._id}')"
+                                    class="bg-green-700 text-white px-2 py-1 rounded text-xs">
+                                    PDF
+                                </button>
                                 ${["asignado","carga_recogida","en_camino","llegó_a_destino"].includes(t.estado) ? `
                                     <button onclick="mostrarModalTracking('${t._id}')"
                                         class="bg-yellow-600 text-white px-2 py-1 rounded text-xs">
@@ -328,12 +332,18 @@ async function renderDetalleViaje(id) {
                         ${renderTimeline(t)}
                     </div>
 
-                    ${["asignado","carga_recogida","en_camino","llegó_a_destino"].includes(t.estado) ? `
-                        <button onclick="mostrarModalTracking('${t._id}')"
-                            class="mt-4 bg-yellow-600 text-white px-4 py-2 rounded font-bold hover:bg-yellow-700">
-                            Actualizar estado
+                    <div class="mt-4 flex gap-2">
+                        <button onclick="imprimirComprobanteViaje('${t._id}')"
+                            class="bg-green-700 text-white px-4 py-2 rounded font-bold hover:bg-green-800">
+                            🖨️ Imprimir comprobante
                         </button>
-                    ` : ""}
+                        ${["asignado","carga_recogida","en_camino","llegó_a_destino"].includes(t.estado) ? `
+                            <button onclick="mostrarModalTracking('${t._id}')"
+                                class="bg-yellow-600 text-white px-4 py-2 rounded font-bold hover:bg-yellow-700">
+                                Actualizar estado
+                            </button>
+                        ` : ""}
+                    </div>
                 </div>
             </div>
         `;
@@ -499,10 +509,14 @@ async function renderHistorial() {
                                     ${estadoLabel(t.estado)}
                                 </span>
                             </td>
-                            <td class="p-3">
+                            <td class="p-3 flex gap-1">
                                 <button onclick="viajeDetalleId='${t._id}'; renderMisViajes();"
                                     class="bg-blue-500 text-white px-2 py-1 rounded text-xs">
                                     Ver detalle
+                                </button>
+                                <button onclick="imprimirComprobanteViaje('${t._id}')"
+                                    class="bg-green-700 text-white px-2 py-1 rounded text-xs">
+                                    PDF
                                 </button>
                             </td>
                         </tr>
@@ -529,6 +543,140 @@ function renderPerfil() {
             <p><b>Rol:</b> ${user.rol}</p>
         </div>
     `;
+}
+
+// ======================
+// PDF
+// ======================
+function printDocument(titulo, bodyHtml) {
+    const userData = JSON.parse(localStorage.getItem("user") || "{}");
+    const now = new Date().toLocaleString();
+
+    const css = `
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; padding: 40px; }
+        .header { text-align: center; border-bottom: 3px solid #166534; padding-bottom: 20px; margin-bottom: 30px; }
+        .header h1 { color: #166534; font-size: 24px; }
+        .header p { color: #666; font-size: 12px; }
+        .doc-title { font-size: 18px; font-weight: bold; text-align: center; margin-bottom: 25px; color: #166534; }
+        .section { margin-bottom: 20px; }
+        .section-title { font-weight: bold; font-size: 14px; color: #166534; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        td, th { padding: 6px 8px; text-align: left; font-size: 13px; }
+        th { background: #f0fdf4; color: #166534; font-weight: bold; }
+        .row-label { font-weight: bold; color: #444; width: 140px; }
+        .total-row td { font-weight: bold; border-top: 2px solid #166534; }
+        .firma { margin-top: 50px; display: flex; justify-content: center; }
+        .firma div { text-align: center; width: 200px; }
+        .firma .line { border-top: 1px solid #333; margin-top: 40px; padding-top: 5px; font-size: 12px; }
+        .footer { margin-top: 40px; text-align: center; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 15px; }
+    </style>`;
+
+    const win = window.open("", "_blank");
+    win.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="UTF-8"><title>${titulo}</title>${css}</head>
+        <body>
+            <div class="header">
+                <h1>CosechaDirecta</h1>
+                <p>Plataforma de Comercio Agrícola</p>
+            </div>
+            <div class="doc-title">${titulo}</div>
+            ${bodyHtml}
+            <div class="footer">
+                <p>Documento generado el ${now} por ${userData.nombre || "—"} (${userData.codigo || "—"})</p>
+                <p>CosechaDirecta &copy; ${new Date().getFullYear()}</p>
+            </div>
+        </body>
+        </html>
+    `);
+    win.document.close();
+
+    setTimeout(() => {
+        win.focus();
+        win.print();
+    }, 300);
+}
+
+function imprimirComprobanteViaje(tripId) {
+    fetch(API_TRIPS + "/" + tripId, {
+        headers: { "Authorization": "Bearer " + token }
+    })
+    .then(r => r.json())
+    .then(t => {
+        const userData = JSON.parse(localStorage.getItem("user") || "{}");
+        const badgeBg = t.estado === "entregado" ? "#166534"
+            : t.estado === "cancelado" ? "#dc2626"
+            : t.estado === "pendiente" ? "#ca8a04"
+            : t.estado === "asignado" ? "#2563eb"
+            : "#7c3aed";
+
+        const body = `
+            <div class="section">
+                <table>
+                    <tr><td class="row-label">No. Comprobante:</td><td><b>${t.codigo}</b></td></tr>
+                    <tr><td class="row-label">Fecha:</td><td>${new Date(t.createdAt || t._id?.getTimestamp?.()).toLocaleDateString() || new Date().toLocaleDateString()}</td></tr>
+                    <tr><td class="row-label">Estado:</td><td><span style="background:${badgeBg};color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:bold">${t.estado}</span></td></tr>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Participantes</div>
+                <table>
+                    <tr><td class="row-label">Transportista:</td><td>${userData.nombre || "—"} (${userData.codigo || "—"})</td></tr>
+                    <tr><td class="row-label">Cliente:</td><td>${t.agricultor?.nombre || "—"}</td></tr>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Ruta y Carga</div>
+                <table>
+                    <tr><td class="row-label">Origen:</td><td>${t.origen || "—"}</td></tr>
+                    <tr><td class="row-label">Destino:</td><td>${t.destino || "—"}</td></tr>
+                    <tr><td class="row-label">Carga total:</td><td>${t.cargaTotalKg} kg</td></tr>
+                    <tr class="total-row"><td>Pago acordado:</td><td>$${t.pago}</td></tr>
+                </table>
+            </div>
+
+            ${t.pedidos?.length ? `
+            <div class="section">
+                <div class="section-title">Pedidos Transportados</div>
+                <table>
+                    <tr><th>Producto</th><th>Cantidad</th><th>Comercio</th></tr>
+                    ${t.pedidos.map(p => `
+                        <tr>
+                            <td>${p.producto?.nombre || "—"}</td>
+                            <td>${p.cantidad} kg</td>
+                            <td>${p.comercio?.nombre || "—"}</td>
+                        </tr>
+                    `).join("")}
+                </table>
+            </div>` : ""}
+
+            ${t.tracking?.length ? `
+            <div class="section">
+                <div class="section-title">Registro de Tracking</div>
+                <table>
+                    <tr><th>Fecha</th><th>Estado</th><th>Ubicación</th></tr>
+                    ${t.tracking.map(x => `
+                        <tr>
+                            <td>${new Date(x.fecha).toLocaleString()}</td>
+                            <td>${x.estado}</td>
+                            <td>${x.ubicacion || "—"}</td>
+                        </tr>
+                    `).join("")}
+                </table>
+            </div>` : ""}
+
+            <div class="firma">
+                <div><div class="line">Transportista</div></div>
+            </div>
+        `;
+
+        printDocument("Comprobante de Viaje — Servicio de Transporte", body);
+    });
 }
 
 // ======================
