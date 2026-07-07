@@ -120,6 +120,13 @@ async function renderUsuarios() {
         const data = await res.json();
 
         c.innerHTML = `
+            <div class="flex justify-between items-center mb-4">
+                <p class="text-gray-500">${data.length} usuarios registrados</p>
+                <button onclick="abrirModalRegistro()"
+                    class="bg-green-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-green-700">
+                    + Registrar usuario
+                </button>
+            </div>
             <div class="bg-white rounded-xl shadow overflow-x-auto">
                 <table class="w-full">
                     <thead><tr class="bg-gray-100 text-left">
@@ -653,6 +660,50 @@ function imprimirViajeAdmin(tripId) {
 }
 
 // ======================
+// REGISTRAR USUARIO (ADMIN)
+// ======================
+function abrirModalRegistro() {
+    document.getElementById("registroModal").classList.remove("hidden");
+    document.getElementById("regNombre").value = "";
+    document.getElementById("regEmail").value = "";
+    document.getElementById("regPassword").value = "";
+    document.getElementById("regRol").value = "agricultor";
+}
+
+function cerrarModalRegistro() {
+    document.getElementById("registroModal").classList.add("hidden");
+}
+
+async function confirmarRegistro() {
+    const nombre = document.getElementById("regNombre").value.trim();
+    const email = document.getElementById("regEmail").value.trim();
+    const password = document.getElementById("regPassword").value;
+    const rol = document.getElementById("regRol").value;
+
+    if (!nombre || !email || !password) {
+        alert("Completa todos los campos");
+        return;
+    }
+
+    const res = await fetch("http://localhost:3000/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre, email, password, rol })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+        alert(data.message);
+        return;
+    }
+
+    alert("Usuario " + data.user.codigo + " (" + rol + ") creado exitosamente");
+    cerrarModalRegistro();
+    renderUsuarios();
+}
+
+// ======================
 // CERRAR SESIÓN
 // ======================
 function cerrarSesion() {
@@ -665,6 +716,42 @@ function cerrarSesion() {
 // ======================
 navigate("Dashboard");
 </script>
+
+<!-- MODAL REGISTRAR USUARIO -->
+<div id="registroModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+    <div class="bg-white p-6 rounded-xl w-full max-w-sm">
+        <h3 class="font-bold text-lg mb-4">Registrar nuevo usuario</h3>
+
+        <div class="space-y-3">
+            <div>
+                <label class="text-sm font-semibold">Nombre</label>
+                <input type="text" id="regNombre" class="w-full border p-2 rounded" placeholder="Nombre completo">
+            </div>
+            <div>
+                <label class="text-sm font-semibold">Email</label>
+                <input type="email" id="regEmail" class="w-full border p-2 rounded" placeholder="correo@ejemplo.com">
+            </div>
+            <div>
+                <label class="text-sm font-semibold">Contraseña</label>
+                <input type="password" id="regPassword" class="w-full border p-2 rounded" placeholder="••••••••">
+            </div>
+            <div>
+                <label class="text-sm font-semibold">Rol</label>
+                <select id="regRol" class="w-full border p-2 rounded">
+                    <option value="agricultor">Agricultor</option>
+                    <option value="comercio">Comercio</option>
+                    <option value="transportista">Transportista</option>
+                    <option value="admin">Administrador</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-2 mt-6">
+            <button onclick="cerrarModalRegistro()" class="bg-gray-300 px-4 py-2 rounded">Cancelar</button>
+            <button onclick="confirmarRegistro()" class="bg-green-600 text-white px-4 py-2 rounded font-bold">Crear usuario</button>
+        </div>
+    </div>
+</div>
 
 </body>
 </html>
