@@ -1,18 +1,573 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Transportista</title>
+<meta charset="UTF-8">
+<title>Dashboard Transportista | CosechaDirecta</title>
+<script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-gray-50 flex min-h-screen">
 
-<h1>Dashboard Transportista 🌾</h1>
+<!-- SIDEBAR -->
+<aside class="w-64 bg-green-800 text-white p-4 flex flex-col">
+    <h1 class="text-xl font-bold mb-6">CosechaDirecta</h1>
 
+    <nav class="space-y-2 flex-1">
+        <button onclick="navigate('Dashboard')" class="nav-btn block w-full text-left p-2 rounded hover:bg-green-700">
+            Dashboard
+        </button>
+        <button onclick="navigate('Disponibles')" class="nav-btn block w-full text-left p-2 rounded hover:bg-green-700">
+            Viajes disponibles
+        </button>
+        <button onclick="navigate('MisViajes')" class="nav-btn block w-full text-left p-2 rounded hover:bg-green-700">
+            Mis viajes
+        </button>
+        <button onclick="navigate('Historial')" class="nav-btn block w-full text-left p-2 rounded hover:bg-green-700">
+            Historial
+        </button>
+        <button onclick="navigate('Perfil')" class="nav-btn block w-full text-left p-2 rounded hover:bg-green-700">
+            Perfil
+        </button>
+    </nav>
 
-<script src="../assets/js/auth.js"></script>
+    <button onclick="cerrarSesion()" class="mt-4 bg-red-600 px-3 py-2 rounded text-sm hover:bg-red-700">Cerrar sesión</button>
+</aside>
+
+<!-- MAIN -->
+<main class="flex-1 p-6">
+    <div id="content"></div>
+</main>
+
 <script>
-    verificarSesion();
+const API_TRIPS = "http://localhost:3000/api/trips";
+const user = JSON.parse(localStorage.getItem("user") || "{}");
+const token = localStorage.getItem("token");
+
+// ======================
+// NAVEGACIÓN
+// ======================
+const views = {
+    "Dashboard": renderDashboard,
+    "Disponibles": renderDisponibles,
+    "MisViajes": renderMisViajes,
+    "Historial": renderHistorial,
+    "Perfil": renderPerfil
+};
+
+function navigate(name) {
+    document.getElementById("content").innerHTML = "";
+    if (views[name]) views[name]();
+}
+
+// ======================
+// BADGES
+// ======================
+const estadoBadge = (e) => ({
+    pendiente: "bg-yellow-500",
+    asignado: "bg-blue-600",
+    carga_recogida: "bg-indigo-500",
+    en_camino: "bg-purple-500",
+    "llegó_a_destino": "bg-green-500",
+    entregado: "bg-green-700",
+    cancelado: "bg-red-600"
+}[e] || "bg-gray-400");
+
+const estadoLabel = (e) => ({
+    pendiente: "Pendiente",
+    asignado: "Asignado",
+    carga_recogida: "Carga recogida",
+    en_camino: "En camino",
+    "llegó_a_destino": "Llegó a destino",
+    entregado: "Entregado",
+    cancelado: "Cancelado"
+}[e] || e);
+
+// ======================
+// DASHBOARD
+// ======================
+async function renderDashboard() {
+    const c = document.getElementById("content");
+
+    try {
+        const [disp, mis] = await Promise.all([
+            fetch(API_TRIPS + "/disponibles", { headers: { "Authorization": "Bearer " + token } }).then(r => r.json()),
+            fetch(API_TRIPS + "/mis-viajes", { headers: { "Authorization": "Bearer " + token } }).then(r => r.json())
+        ]);
+
+        const disponible = Array.isArray(disp) ? disp.length : 0;
+        const misViajes = Array.isArray(mis) ? mis : [];
+        const enRuta = misViajes.filter(t => ["asignado","carga_recogida","en_camino","llegó_a_destino"].includes(t.estado)).length;
+        const entregados = misViajes.filter(t => t.estado === "entregado").length;
+
+        c.innerHTML = `
+            <h2 class="text-2xl font-bold mb-6">Dashboard</h2>
+            <p class="text-gray-500 mb-4">Bienvenido, ${user.nombre || "Transportista"}</p>
+
+            <div class="grid grid-cols-4 gap-4 mb-6">
+                <div class="bg-yellow-100 border border-yellow-300 p-4 rounded-xl">
+                    <p class="text-sm text-yellow-600 font-bold">VIAJES DISPONIBLES</p>
+                    <p class="text-3xl font-bold text-yellow-700">${disponible}</p>
+                </div>
+                <div class="bg-blue-100 border border-blue-300 p-4 rounded-xl">
+                    <p class="text-sm text-blue-600 font-bold">MIS VIAJES</p>
+                    <p class="text-3xl font-bold text-blue-700">${misViajes.length}</p>
+                </div>
+                <div class="bg-purple-100 border border-purple-300 p-4 rounded-xl">
+                    <p class="text-sm text-purple-600 font-bold">EN RUTA</p>
+                    <p class="text-3xl font-bold text-purple-700">${enRuta}</p>
+                </div>
+                <div class="bg-green-100 border border-green-300 p-4 rounded-xl">
+                    <p class="text-sm text-green-600 font-bold">ENTREGADOS</p>
+                    <p class="text-3xl font-bold text-green-700">${entregados}</p>
+                </div>
+            </div>
+
+            ${misViajes.filter(t => t.estado !== "entregado" && t.estado !== "cancelado").length > 0 ? `
+                <h3 class="font-bold mb-2">Viajes activos</h3>
+                ${misViajes.filter(t => t.estado === "asignado" || t.estado === "carga_recogida" || t.estado === "en_camino" || t.estado === "llegó_a_destino").map(t => `
+                    <div class="border p-3 rounded mb-2 flex justify-between items-center">
+                        <div>
+                            <p><b>${t.codigo}</b> — ${t.origen} → ${t.destino}</p>
+                            <p class="text-sm text-gray-500">${t.cargaTotalKg} kg | $${t.pago}</p>
+                        </div>
+                        <span class="text-white px-2 py-0.5 rounded text-xs font-bold ${estadoBadge(t.estado)}">${estadoLabel(t.estado)}</span>
+                    </div>
+                `).join("")}
+            ` : `<p class='text-gray-500'>No tienes viajes activos</p>`}
+        `;
+    } catch (e) {
+        c.innerHTML = "<p class='text-red-500'>Error al cargar dashboard</p>";
+    }
+}
+
+// ======================
+// VIAJES DISPONIBLES
+// ======================
+async function renderDisponibles() {
+    const c = document.getElementById("content");
+
+    try {
+        const res = await fetch(API_TRIPS + "/disponibles", {
+            headers: { "Authorization": "Bearer " + token }
+        });
+        const data = await res.json();
+
+        c.innerHTML = `
+            <h2 class="text-2xl font-bold mb-4">Viajes disponibles</h2>
+            ${!data.length ? "<p class='text-gray-500'>No hay viajes disponibles</p>" : `
+            <table class="w-full border-collapse">
+                <thead>
+                    <tr class="bg-gray-100 text-left">
+                        <th class="p-3">Viaje</th>
+                        <th class="p-3">Origen</th>
+                        <th class="p-3">Destino</th>
+                        <th class="p-3">Carga</th>
+                        <th class="p-3">Pago</th>
+                        <th class="p-3">Agricultor</th>
+                        <th class="p-3"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${data.map(t => `
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="p-3 font-bold">${t.codigo}</td>
+                            <td class="p-3">${t.origen}</td>
+                            <td class="p-3">${t.destino}</td>
+                            <td class="p-3">${t.cargaTotalKg} kg</td>
+                            <td class="p-3 font-bold text-green-700">$${t.pago}</td>
+                            <td class="p-3">${t.agricultor?.nombre || "—"}</td>
+                            <td class="p-3">
+                                <button onclick="asignarViaje('${t._id}')"
+                                    class="bg-green-600 text-white px-3 py-1 rounded text-sm font-bold hover:bg-green-700">
+                                    Aceptar
+                                </button>
+                            </td>
+                        </tr>
+                    `).join("")}
+                </tbody>
+            </table>
+            `}
+        `;
+    } catch (e) {
+        c.innerHTML = "<p class='text-red-500'>Error al cargar viajes</p>";
+    }
+}
+
+async function asignarViaje(id) {
+    if (!confirm("¿Aceptar este viaje?")) return;
+
+    const res = await fetch(API_TRIPS + "/" + id + "/asignar", {
+        method: "PUT",
+        headers: { "Authorization": "Bearer " + token }
+    });
+
+    if (!res.ok) {
+        const data = await res.json();
+        alert(data.message);
+        return;
+    }
+
+    alert("Viaje asignado correctamente");
+    navigate("MisViajes");
+}
+
+// ======================
+// MIS VIAJES
+// ======================
+let viajeDetalleId = null;
+
+const ordenEstados = ["asignado", "carga_recogida", "en_camino", "llegó_a_destino", "entregado"];
+
+async function renderMisViajes() {
+    const c = document.getElementById("content");
+
+    if (viajeDetalleId) {
+        renderDetalleViaje(viajeDetalleId);
+        return;
+    }
+
+    try {
+        const res = await fetch(API_TRIPS + "/mis-viajes", {
+            headers: { "Authorization": "Bearer " + token }
+        });
+        const data = await res.json();
+
+        c.innerHTML = `
+            <h2 class="text-2xl font-bold mb-4">Mis viajes</h2>
+            ${!data.length ? "<p class='text-gray-500'>No tienes viajes asignados</p>" : `
+            <table class="w-full border-collapse">
+                <thead>
+                    <tr class="bg-gray-100 text-left">
+                        <th class="p-3">Viaje</th>
+                        <th class="p-3">Ruta</th>
+                        <th class="p-3">Carga</th>
+                        <th class="p-3">Pago</th>
+                        <th class="p-3">Estado</th>
+                        <th class="p-3"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${data.map(t => `
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="p-3 font-bold">${t.codigo}</td>
+                            <td class="p-3">${t.origen} → ${t.destino}</td>
+                            <td class="p-3">${t.cargaTotalKg} kg</td>
+                            <td class="p-3">$${t.pago}</td>
+                            <td class="p-3">
+                                <span class="text-white px-2 py-0.5 rounded text-xs font-bold ${estadoBadge(t.estado)}">
+                                    ${estadoLabel(t.estado)}
+                                </span>
+                            </td>
+                            <td class="p-3 flex gap-1">
+                                <button onclick="viajeDetalleId='${t._id}'; renderMisViajes();"
+                                    class="bg-blue-500 text-white px-2 py-1 rounded text-xs">
+                                    Ver
+                                </button>
+                                ${["asignado","carga_recogida","en_camino","llegó_a_destino"].includes(t.estado) ? `
+                                    <button onclick="mostrarModalTracking('${t._id}')"
+                                        class="bg-yellow-600 text-white px-2 py-1 rounded text-xs">
+                                        Tracking
+                                    </button>
+                                ` : ""}
+                            </td>
+                        </tr>
+                    `).join("")}
+                </tbody>
+            </table>
+            `}
+        `;
+    } catch (e) {
+        c.innerHTML = "<p class='text-red-500'>Error al cargar viajes</p>";
+    }
+}
+
+// ======================
+// DETALLE VIAJE
+// ======================
+async function renderDetalleViaje(id) {
+    const c = document.getElementById("content");
+
+    try {
+        const res = await fetch(API_TRIPS + "/" + id, {
+            headers: { "Authorization": "Bearer " + token }
+        });
+        const t = await res.json();
+
+        c.innerHTML = `
+            <button onclick="viajeDetalleId=null; renderMisViajes();" class="text-blue-600 mb-4 block">&larr; Volver a mis viajes</button>
+
+            <div class="grid grid-cols-2 gap-6">
+                <div>
+                    <h2 class="text-2xl font-bold mb-4">${t.codigo}</h2>
+                    <div class="bg-white p-4 rounded-xl shadow space-y-2">
+                        <p><b>Ruta:</b> ${t.origen} → ${t.destino}</p>
+                        <p><b>Carga total:</b> ${t.cargaTotalKg} kg</p>
+                        <p><b>Pago:</b> $${t.pago}</p>
+                        <p>
+                            <b>Estado:</b>
+                            <span class="text-white px-2 py-0.5 rounded text-xs font-bold ${estadoBadge(t.estado)}">
+                                ${estadoLabel(t.estado)}
+                            </span>
+                        </p>
+                        <p><b>Agricultor:</b> ${t.agricultor?.nombre || "—"}</p>
+                    </div>
+
+                    <h3 class="font-bold mt-6 mb-2">Pedidos</h3>
+                    <div class="space-y-2">
+                        ${(t.pedidos || []).map(p => `
+                            <div class="bg-gray-50 border p-3 rounded">
+                                <p><b>${p.producto?.nombre || "—"}</b> — ${p.cantidad} kg</p>
+                                <p class="text-sm text-gray-500">Comercio: ${p.comercio?.nombre || "—"} | Agricultor: ${p.agricultor?.nombre || "—"}</p>
+                            </div>
+                        `).join("") || "<p class='text-gray-500'>Sin pedidos</p>"}
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="font-bold mb-4">Línea de tiempo</h3>
+                    <div class="bg-white p-4 rounded-xl shadow">
+                        ${renderTimeline(t)}
+                    </div>
+
+                    ${["asignado","carga_recogida","en_camino","llegó_a_destino"].includes(t.estado) ? `
+                        <button onclick="mostrarModalTracking('${t._id}')"
+                            class="mt-4 bg-yellow-600 text-white px-4 py-2 rounded font-bold hover:bg-yellow-700">
+                            Actualizar estado
+                        </button>
+                    ` : ""}
+                </div>
+            </div>
+        `;
+    } catch (e) {
+        c.innerHTML = "<p class='text-red-500'>Error al cargar detalle</p>";
+    }
+}
+
+function renderTimeline(t) {
+    const steps = [
+        { key: "pendiente", label: "Viaje publicado" },
+        { key: "asignado", label: "Transportista asignado" },
+        { key: "carga_recogida", label: "Mercancía recogida" },
+        { key: "en_camino", label: "En carretera" },
+        { key: "llegó_a_destino", label: "Llegó al destino" },
+        { key: "entregado", label: "Entregado" }
+    ];
+
+    const estadosCompletados = (t.tracking || []).map(x => x.estado);
+
+    return steps.map((s, i) => {
+        const completado = estadosCompletados.includes(s.key);
+        const entry = (t.tracking || []).find(x => x.estado === s.key);
+        return `
+            <div class="flex items-start mb-3">
+                <div class="flex flex-col items-center mr-3">
+                    <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold
+                        ${completado ? "bg-green-600" : "bg-gray-300"}">
+                        ${completado ? "✓" : "○"}
+                    </div>
+                    ${i < steps.length - 1 ? `
+                        <div class="w-0.5 h-8 ${completado ? "bg-green-600" : "bg-gray-300"}"></div>
+                    ` : ""}
+                </div>
+                <div>
+                    <p class="font-medium ${completado ? "text-green-700" : "text-gray-400"}">${s.label}</p>
+                    ${entry ? `
+                        <p class="text-xs text-gray-400">
+                            ${new Date(entry.fecha).toLocaleString()}
+                            ${entry.ubicacion ? `— ${entry.ubicacion}` : ""}
+                        </p>
+                    ` : ""}
+                </div>
+            </div>
+        `;
+    }).join("");
+}
+
+// ======================
+// MODAL TRACKING
+// ======================
+let trackingTripId = null;
+
+function mostrarModalTracking(tripId) {
+    trackingTripId = tripId;
+
+    const estadosValidos = (() => {
+        const c = document.getElementById("content");
+        // We'll fetch trip to get current estado
+        return [];
+    })();
+
+    document.getElementById("trackingModal").classList.remove("hidden");
+
+    // Cargar el viaje para obtener el estado actual y llenar el select
+    fetch(API_TRIPS + "/" + tripId, {
+        headers: { "Authorization": "Bearer " + token }
+    })
+    .then(r => r.json())
+    .then(t => {
+        const idx = ordenEstados.indexOf(t.estado);
+        const opciones = ordenEstados.slice(idx + 1);
+
+        const select = document.getElementById("trackingEstado");
+        select.innerHTML = opciones.map(e =>
+            `<option value="${e}">${estadoLabel(e)}</option>`
+        ).join("");
+    });
+}
+
+function cerrarModalTracking() {
+    document.getElementById("trackingModal").classList.add("hidden");
+    trackingTripId = null;
+}
+
+async function confirmarTracking() {
+    const estado = document.getElementById("trackingEstado").value;
+    const ubicacion = document.getElementById("trackingUbicacion").value;
+
+    if (!estado) {
+        alert("Selecciona un estado");
+        return;
+    }
+
+    const res = await fetch(API_TRIPS + "/" + trackingTripId + "/estado", {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({ estado, ubicacion })
+    });
+
+    if (!res.ok) {
+        const data = await res.json();
+        alert(data.message);
+        return;
+    }
+
+    cerrarModalTracking();
+    viajeDetalleId = trackingTripId;
+    renderMisViajes();
+}
+
+// ======================
+// HISTORIAL
+// ======================
+async function renderHistorial() {
+    const c = document.getElementById("content");
+    let historialId = null;
+
+    c.innerHTML = `
+        <h2 class="text-2xl font-bold mb-4">Historial</h2>
+        <div id="historialContent"></div>
+    `;
+
+    const hc = document.getElementById("historialContent");
+
+    try {
+        const res = await fetch(API_TRIPS + "/mis-viajes", {
+            headers: { "Authorization": "Bearer " + token }
+        });
+        const data = await res.json();
+
+        const filtrados = data.filter(t => t.estado === "entregado" || t.estado === "cancelado");
+
+        if (!filtrados.length) {
+            hc.innerHTML = "<p class='text-gray-500'>No hay viajes en el historial</p>";
+            return;
+        }
+
+        hc.innerHTML = `
+            <table class="w-full border-collapse">
+                <thead>
+                    <tr class="bg-gray-100 text-left">
+                        <th class="p-3">Viaje</th>
+                        <th class="p-3">Ruta</th>
+                        <th class="p-3">Producto</th>
+                        <th class="p-3">Destino</th>
+                        <th class="p-3">Estado</th>
+                        <th class="p-3"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filtrados.map(t => `
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="p-3 font-bold">${t.codigo}</td>
+                            <td class="p-3">${t.origen} → ${t.destino}</td>
+                            <td class="p-3">${t.cargaTotalKg} kg</td>
+                            <td class="p-3">${t.destino}</td>
+                            <td class="p-3">
+                                <span class="text-white px-2 py-0.5 rounded text-xs font-bold ${estadoBadge(t.estado)}">
+                                    ${estadoLabel(t.estado)}
+                                </span>
+                            </td>
+                            <td class="p-3">
+                                <button onclick="viajeDetalleId='${t._id}'; renderMisViajes();"
+                                    class="bg-blue-500 text-white px-2 py-1 rounded text-xs">
+                                    Ver detalle
+                                </button>
+                            </td>
+                        </tr>
+                    `).join("")}
+                </tbody>
+            </table>
+        `;
+    } catch (e) {
+        hc.innerHTML = "<p class='text-red-500'>Error al cargar historial</p>";
+    }
+}
+
+// ======================
+// PERFIL
+// ======================
+function renderPerfil() {
+    const c = document.getElementById("content");
+    c.innerHTML = `
+        <h2 class="text-2xl font-bold mb-4">Perfil</h2>
+        <div class="bg-white p-6 rounded-xl shadow max-w-md space-y-2">
+            <p><b>Código:</b> ${user.codigo || "—"}</p>
+            <p><b>Nombre:</b> ${user.nombre}</p>
+            <p><b>Email:</b> ${user.email}</p>
+            <p><b>Rol:</b> ${user.rol}</p>
+        </div>
+    `;
+}
+
+// ======================
+// CERRAR SESIÓN
+// ======================
+function cerrarSesion() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.href = "../login.html";
+}
+
+// ======================
+// INIT
+// ======================
+renderDashboard();
 </script>
+
+<!-- MODAL TRACKING -->
+<div id="trackingModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+    <div class="bg-white p-6 rounded-xl w-full max-w-sm">
+        <h3 class="font-bold text-lg mb-4">Actualizar estado del viaje</h3>
+
+        <div class="space-y-3">
+            <div>
+                <label class="text-sm font-semibold">Nuevo estado</label>
+                <select id="trackingEstado" class="w-full border p-2 rounded"></select>
+            </div>
+            <div>
+                <label class="text-sm font-semibold">Ubicación (opcional)</label>
+                <input type="text" id="trackingUbicacion" class="w-full border p-2 rounded" placeholder="Ej: Valencia, Carabobo">
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-2 mt-6">
+            <button onclick="cerrarModalTracking()" class="bg-gray-300 px-4 py-2 rounded">Cancelar</button>
+            <button onclick="confirmarTracking()" class="bg-yellow-600 text-white px-4 py-2 rounded font-bold">Confirmar</button>
+        </div>
+    </div>
+</div>
 
 </body>
 </html>

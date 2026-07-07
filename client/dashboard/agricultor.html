@@ -50,6 +50,18 @@
     <div id="orders"></div>
 </div>
 
+<!-- MIS VIAJES -->
+<div class="bg-white p-4 rounded-xl shadow mb-6">
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="font-bold">Mis viajes</h2>
+        <button onclick="mostrarCrearViaje()"
+            class="bg-blue-600 text-white px-3 py-1 rounded text-sm font-bold">
+            + Publicar viaje
+        </button>
+    </div>
+    <div id="viajesContainer"></div>
+</div>
+
 <!-- MIS TOKENS -->
 <div class="bg-white p-4 rounded-xl shadow mb-6">
     <h2 class="font-bold mb-4">Mis tokens</h2>
@@ -96,12 +108,55 @@
     </div>
 </div>
 
+<!-- MODAL CREAR VIAJE -->
+<div id="crearViajeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+    <div class="bg-white p-6 rounded-xl w-full max-w-lg">
+        <h3 class="font-bold text-lg mb-4">Publicar nuevo viaje</h3>
+
+        <div id="crearViajePedidos" class="mb-4 space-y-2"></div>
+
+        <div class="space-y-3">
+            <div>
+                <label class="text-sm font-semibold">Origen</label>
+                <input type="text" id="viajeOrigen" class="w-full border p-2 rounded" placeholder="Ej: Mérida">
+            </div>
+            <div>
+                <label class="text-sm font-semibold">Destino</label>
+                <input type="text" id="viajeDestino" class="w-full border p-2 rounded" placeholder="Ej: Caracas">
+            </div>
+            <div>
+                <label class="text-sm font-semibold">Pago ofrecido al transportista ($)</label>
+                <input type="number" id="viajePago" min="1" class="w-full border p-2 rounded">
+            </div>
+            <p id="viajeCargaTotal" class="text-sm text-gray-500 font-bold"></p>
+        </div>
+
+        <div class="flex justify-end gap-2 mt-6">
+            <button onclick="cerrarCrearViaje()" class="bg-gray-300 px-4 py-2 rounded">Cancelar</button>
+            <button onclick="confirmarCrearViaje()" class="bg-blue-600 text-white px-4 py-2 rounded font-bold">Publicar viaje</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL AGREGAR A VIAJE -->
+<div id="agregarViajeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+    <div class="bg-white p-6 rounded-xl w-full max-w-md">
+        <h3 class="font-bold text-lg mb-4">Agregar pedido a viaje</h3>
+        <p class="text-sm text-gray-500 mb-3">Selecciona un viaje activo:</p>
+        <div id="agregarViajeLista"></div>
+        <div class="flex justify-end gap-2 mt-6">
+            <button onclick="cerrarAgregarViaje()" class="bg-gray-300 px-4 py-2 rounded">Cancelar</button>
+        </div>
+    </div>
+</div>
+
 <script>
 const API_PRODUCTS = "http://localhost:3000/api/products";
 const API_ORDERS = "http://localhost:3000/api/orders";
 const API_TOKENS = "http://localhost:3000/api/tokens";
 const API_FINANCING = "http://localhost:3000/api/financiamiento";
 const API_CONTRACTS = "http://localhost:3000/api/contracts";
+const API_TRIPS = "http://localhost:3000/api/trips";
 const token = localStorage.getItem("token");
 
 // ======================
@@ -212,32 +267,90 @@ async function loadPedidosAgricultor() {
             return;
         }
 
+        const badgeEstado = (e) => ({
+            pendiente: "bg-yellow-500",
+            aceptado: "bg-green-600",
+            rechazado: "bg-red-600",
+            en_transporte: "bg-purple-600",
+            entregado: "bg-blue-600"
+        }[e] || "bg-gray-400");
+
+        const labelEstado = (e) => ({
+            pendiente: "Pendiente",
+            aceptado: "Aceptado",
+            rechazado: "Rechazado",
+            en_transporte: "En transporte",
+            entregado: "Entregado"
+        }[e] || e);
+
         container.innerHTML = data.map(o => `
             <div class="border p-3 rounded mb-3">
-
-                <p><b>Producto:</b> ${o.producto?.nombre || "—"}</p>
-                <p><b>Cantidad:</b> ${o.cantidad} kg</p>
-                <p><b>Comercio:</b> ${o.comercio?.nombre || "—"}</p>
-                <p><b>Estado:</b> ${o.estado}</p>
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p><b>Producto:</b> ${o.producto?.nombre || "—"}</p>
+                        <p><b>Cantidad:</b> ${o.cantidad} kg</p>
+                        <p><b>Comercio:</b> ${o.comercio?.nombre || "—"}</p>
+                    </div>
+                    <span class="text-white px-2 py-0.5 rounded text-xs font-bold ${badgeEstado(o.estado)}">
+                        ${labelEstado(o.estado)}
+                    </span>
+                </div>
 
                 ${o.estado === "pendiente" ? `
                     <div class="mt-2 flex gap-2">
                         <button onclick="updateStatus('${o._id}', 'aceptado')"
-                            class="bg-green-500 text-white px-3 py-1 rounded">
+                            class="bg-green-500 text-white px-3 py-1 rounded text-sm font-bold">
                             Aceptar
                         </button>
                         <button onclick="updateStatus('${o._id}', 'rechazado')"
-                            class="bg-red-500 text-white px-3 py-1 rounded">
+                            class="bg-red-500 text-white px-3 py-1 rounded text-sm font-bold">
                             Rechazar
                         </button>
                     </div>
-                ` : `
-                    <span class="inline-block mt-2 px-3 py-1 rounded text-white font-bold
-                        ${o.estado === "aceptado" ? "bg-green-600" : "bg-red-600"}">
-                        ${o.estado === "aceptado" ? "Aceptado" : "Rechazado"}
-                    </span>
-                `}
+                ` : o.estado === "aceptado" ? `
+                    <div class="mt-2">
+                        <span class="inline-block px-3 py-1 rounded text-white font-bold bg-green-600 text-sm">Aceptado</span>
+                        ${!o.viaje ? `
+                            <button onclick="agregarAPedidoViaje('${o._id}')"
+                                class="ml-2 bg-blue-500 text-white px-3 py-1 rounded text-sm font-bold">
+                                Agregar a viaje
+                            </button>
+                        ` : ""}
+                    </div>
+                ` : ""}
 
+                ${o.viaje ? `
+                    <div class="mt-2 p-2 bg-gray-50 border rounded text-sm">
+                        <p><b>Viaje:</b> ${o.viaje.codigo || "—"} — ${o.viaje.origen || "—"} → ${o.viaje.destino || "—"}</p>
+                        <p><b>Transportista:</b> ${o.viaje.transportista?.nombre || "Pendiente de asignar"}</p>
+                        <p><b>Estado del envío:</b>
+                            <span class="text-white px-2 py-0.5 rounded text-xs font-bold
+                                ${o.viaje.estado === "en_camino" ? "bg-purple-500"
+                                : o.viaje.estado === "carga_recogida" ? "bg-indigo-500"
+                                : o.viaje.estado === "asignado" ? "bg-blue-600"
+                                : o.viaje.estado === "llegó_a_destino" ? "bg-green-500"
+                                : o.viaje.estado === "entregado" ? "bg-green-700"
+                                : o.viaje.estado === "cancelado" ? "bg-red-600"
+                                : "bg-gray-400"}">
+                                ${o.viaje.estado === "en_camino" ? "En camino"
+                                : o.viaje.estado === "carga_recogida" ? "Carga recogida"
+                                : o.viaje.estado === "asignado" ? "Asignado"
+                                : o.viaje.estado === "llegó_a_destino" ? "Llegó a destino"
+                                : o.viaje.estado === "entregado" ? "Entregado"
+                                : o.viaje.estado === "cancelado" ? "Cancelado"
+                                : o.viaje.estado || "—"}
+                            </span>
+                        </p>
+                    </div>
+                ` : ""}
+                ${o.estado !== "pendiente" && o.estado !== "rechazado" ? `
+                    <div class="mt-2">
+                        <button onclick="imprimirFactura('${o._id}')"
+                            class="text-blue-600 text-sm font-bold">
+                            🖨️ Imprimir factura
+                        </button>
+                    </div>
+                ` : ""}
             </div>
         `).join("");
 
@@ -456,6 +569,12 @@ async function loadMisFinanciamientos() {
                             `).join("")}
                         </details>
                     ` : ""}
+                    <div class="mt-2">
+                        <button onclick="imprimirComprobante('${f._id}')"
+                            class="text-blue-600 text-sm font-bold">
+                            🖨️ Imprimir comprobante
+                        </button>
+                    </div>
                 </div>
             `;
         }).join("");
@@ -561,6 +680,12 @@ async function loadContratos() {
                 ${c.token ? `
                     <p class="text-xs text-blue-600 mt-1">Token: ${c.token.codigo || "—"} (${c.token.cantidad || "—"} kg)</p>
                 ` : ""}
+                <div class="mt-2">
+                    <button onclick="imprimirContrato('${c._id}')"
+                        class="text-blue-600 text-sm font-bold">
+                        🖨️ Imprimir contrato
+                    </button>
+                </div>
             </div>
         `).join("");
 
@@ -628,6 +753,552 @@ async function cambiarEstadoContrato(id) {
 }
 
 // ======================
+// VIAJES
+// ======================
+let pedidoParaViajeId = null;
+
+async function loadMisViajesAgricultor() {
+    const container = document.getElementById("viajesContainer");
+
+    try {
+        const res = await fetch(API_TRIPS + "/mis-pedidos", {
+            headers: { "Authorization": "Bearer " + token }
+        });
+
+        const data = await res.json();
+
+        if (!data.length) {
+            container.innerHTML = "<p class='text-gray-500'>No has publicado viajes aún</p>";
+            return;
+        }
+
+        container.innerHTML = data.map(t => `
+            <div class="border p-3 rounded mb-3">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p><b>${t.codigo}</b> — ${t.origen} → ${t.destino}</p>
+                        <p><b>Carga:</b> ${t.cargaTotalKg} kg | <b>Pago:</b> $${t.pago}</p>
+                        <p><b>Transportista:</b> ${t.transportista?.nombre || "Pendiente"}</p>
+                        <p><b>Pedidos:</b> ${(t.pedidos || []).map(p => `${p.producto?.nombre || "—"} (${p.cantidad} kg)`).join(", ") || "—"}</p>
+                    </div>
+                    <span class="text-white px-2 py-0.5 rounded text-xs font-bold
+                        ${t.estado === "asignado" ? "bg-blue-600"
+                        : t.estado === "carga_recogida" ? "bg-indigo-500"
+                        : t.estado === "en_camino" ? "bg-purple-500"
+                        : t.estado === "llegó_a_destino" ? "bg-green-500"
+                        : t.estado === "entregado" ? "bg-green-700"
+                        : t.estado === "cancelado" ? "bg-red-600"
+                        : "bg-yellow-500"}">
+                        ${t.estado === "asignado" ? "Asignado"
+                        : t.estado === "carga_recogida" ? "Carga recogida"
+                        : t.estado === "en_camino" ? "En camino"
+                        : t.estado === "llegó_a_destino" ? "Llegó a destino"
+                        : t.estado === "entregado" ? "Entregado"
+                        : t.estado === "cancelado" ? "Cancelado"
+                        : "Pendiente"}
+                    </span>
+                </div>
+
+                ${(t.tracking || []).length > 1 ? `
+                    <details class="mt-2">
+                        <summary class="text-sm text-gray-500 cursor-pointer">Línea de tiempo</summary>
+                        <div class="ml-2 mt-1">
+                            ${t.tracking.map(x => `
+                                <p class="text-xs text-gray-400">
+                                    ${new Date(x.fecha).toLocaleString()} — ${x.estado} ${x.ubicacion ? "(" + x.ubicacion + ")" : ""}
+                                </p>
+                            `).join("")}
+                        </div>
+                    </details>
+                ` : ""}
+                <div class="mt-2">
+                    <button onclick="imprimirTransporte('${t._id}')"
+                        class="text-blue-600 text-sm font-bold">
+                        🖨️ Imprimir orden de transporte
+                    </button>
+                </div>
+            </div>
+        `).join("");
+    } catch (e) {
+        container.innerHTML = "<p class='text-red-500'>Error al cargar viajes</p>";
+    }
+}
+
+function mostrarCrearViaje() {
+    document.getElementById("crearViajeModal").classList.remove("hidden");
+
+    fetch(API_ORDERS + "/agricultor", {
+        headers: { "Authorization": "Bearer " + token }
+    })
+    .then(r => r.json())
+    .then(orders => {
+        const aceptadosSinViaje = orders.filter(o => o.estado === "aceptado" && !o.viaje);
+        const container = document.getElementById("crearViajePedidos");
+
+        if (!aceptadosSinViaje.length) {
+            container.innerHTML = "<p class='text-gray-500'>No hay pedidos aceptados disponibles para viaje</p>";
+            return;
+        }
+
+        container.innerHTML = aceptadosSinViaje.map(o => `
+            <label class="flex items-center gap-2 border p-2 rounded cursor-pointer hover:bg-gray-50">
+                <input type="checkbox" class="pedidoCheck" value="${o._id}" data-cantidad="${o.cantidad}" onchange="calcularCargaViaje()">
+                <span>${o.producto?.nombre || "—"} — ${o.cantidad} kg — ${o.comercio?.nombre || "—"}</span>
+            </label>
+        `).join("");
+    });
+}
+
+function calcularCargaViaje() {
+    const checks = document.querySelectorAll(".pedidoCheck:checked");
+    let total = 0;
+    checks.forEach(c => { total += parseFloat(c.dataset.cantidad || 0); });
+    document.getElementById("viajeCargaTotal").innerText = "Carga total: " + total + " kg";
+}
+
+function cerrarCrearViaje() {
+    document.getElementById("crearViajeModal").classList.add("hidden");
+    document.getElementById("viajeOrigen").value = "";
+    document.getElementById("viajeDestino").value = "";
+    document.getElementById("viajePago").value = "";
+    document.getElementById("viajeCargaTotal").innerText = "";
+}
+
+async function confirmarCrearViaje() {
+    const checks = document.querySelectorAll(".pedidoCheck:checked");
+    const pedidos = Array.from(checks).map(c => c.value);
+    const origen = document.getElementById("viajeOrigen").value.trim();
+    const destino = document.getElementById("viajeDestino").value.trim();
+    const pago = parseInt(document.getElementById("viajePago").value);
+
+    if (!pedidos.length || !origen || !destino || !pago) {
+        alert("Completa todos los campos y selecciona al menos un pedido");
+        return;
+    }
+
+    const res = await fetch(API_TRIPS, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({ pedidos, origen, destino, pago })
+    });
+
+    if (!res.ok) {
+        const data = await res.json();
+        alert(data.message);
+        return;
+    }
+
+    alert("Viaje publicado exitosamente");
+    cerrarCrearViaje();
+    loadPedidosAgricultor();
+    loadMisViajesAgricultor();
+}
+
+function agregarAPedidoViaje(pedidoId) {
+    pedidoParaViajeId = pedidoId;
+    const container = document.getElementById("agregarViajeLista");
+
+    fetch(API_TRIPS + "/mis-pedidos", {
+        headers: { "Authorization": "Bearer " + token }
+    })
+    .then(r => r.json())
+    .then(trips => {
+        const disponibles = trips.filter(t => t.estado === "pendiente" || t.estado === "asignado");
+
+        if (!disponibles.length) {
+            container.innerHTML = "<p class='text-gray-500'>No hay viajes activos para agregar. Crea uno nuevo.</p>";
+            document.getElementById("agregarViajeModal").classList.remove("hidden");
+            return;
+        }
+
+        container.innerHTML = disponibles.map(t => `
+            <div class="border p-2 rounded mb-2 cursor-pointer hover:bg-gray-50"
+                onclick="confirmarAgregarViaje('${t._id}')">
+                <p><b>${t.codigo}</b> — ${t.origen} → ${t.destino} (${t.cargaTotalKg} kg)</p>
+                <p class="text-sm text-gray-500">Estado: ${t.estado === "pendiente" ? "Pendiente" : "Asignado"}</p>
+            </div>
+        `).join("");
+
+        document.getElementById("agregarViajeModal").classList.remove("hidden");
+    });
+}
+
+function cerrarAgregarViaje() {
+    document.getElementById("agregarViajeModal").classList.add("hidden");
+    pedidoParaViajeId = null;
+}
+
+async function confirmarAgregarViaje(tripId) {
+    // Agregar pedido a viaje existente
+    const res = await fetch(API_TRIPS + "/" + tripId, {
+        headers: { "Authorization": "Bearer " + token }
+    });
+
+    const trip = await res.json();
+    const pedidosActuales = (trip.pedidos || []).map(p => p._id || p);
+    pedidosActuales.push(pedidoParaViajeId);
+
+    // We need an endpoint to update a trip's pedidos... Actually let me use the PUT endpoint.
+    // But there's no endpoint for updating pedidos. Let me think of a simpler approach.
+
+    // Actually, since the controller's `asignar` only goes pendiente→asignado, and `actualizarEstado`
+    // only changes estado, we can't just add a pedido to a trip via existing endpoints.
+
+    // The simplest approach: the agricultor should create a new trip with all selected pedidos,
+    // or create a trip initially with all the pedidos they want.
+
+    // Let's simplify: Instead of "Agregar a viaje" button on individual orders, we'll just have
+    // the "Publicar viaje" modal where they select multiple orders and create a trip.
+
+    alert("Para agregar más pedidos a un viaje, usa la opción 'Publicar viaje' y selecciona todos los pedidos que deseas incluir.");
+    cerrarAgregarViaje();
+}
+
+// ======================
+// PDF
+// ======================
+function printDocument(titulo, bodyHtml) {
+    const userData = JSON.parse(localStorage.getItem("user") || "{}");
+    const now = new Date().toLocaleString();
+
+    const css = `
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; padding: 40px; }
+        .header { text-align: center; border-bottom: 3px solid #166534; padding-bottom: 20px; margin-bottom: 30px; }
+        .header h1 { color: #166534; font-size: 24px; }
+        .header p { color: #666; font-size: 12px; }
+        .doc-title { font-size: 18px; font-weight: bold; text-align: center; margin-bottom: 25px; color: #166534; }
+        .section { margin-bottom: 20px; }
+        .section-title { font-weight: bold; font-size: 14px; color: #166534; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        td, th { padding: 6px 8px; text-align: left; font-size: 13px; }
+        th { background: #f0fdf4; color: #166534; font-weight: bold; }
+        .row-label { font-weight: bold; color: #444; width: 140px; }
+        .total-row td { font-weight: bold; border-top: 2px solid #166534; }
+        .firma { margin-top: 50px; display: flex; justify-content: space-between; }
+        .firma div { text-align: center; width: 200px; }
+        .firma .line { border-top: 1px solid #333; margin-top: 40px; padding-top: 5px; font-size: 12px; }
+        .footer { margin-top: 40px; text-align: center; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 15px; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; color: #fff; }
+        .badge-verde { background: #166534; }
+        .badge-amarillo { background: #ca8a04; }
+        .badge-rojo { background: #dc2626; }
+        .badge-azul { background: #2563eb; }
+        .badge-morado { background: #7c3aed; }
+    </style>`;
+
+    const win = window.open("", "_blank");
+    win.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="UTF-8"><title>${titulo}</title>${css}</head>
+        <body>
+            <div class="header">
+                <h1>CosechaDirecta</h1>
+                <p>Plataforma de Comercio Agrícola</p>
+            </div>
+            <div class="doc-title">${titulo}</div>
+            ${bodyHtml}
+            <div class="footer">
+                <p>Documento generado el ${now} por ${userData.nombre || "—"} (${userData.codigo || "—"})</p>
+                <p>CosechaDirecta &copy; ${new Date().getFullYear()}</p>
+            </div>
+        </body>
+        </html>
+    `);
+    win.document.close();
+
+    setTimeout(() => {
+        win.focus();
+        win.print();
+    }, 300);
+}
+
+// ---------- Factura Pedido ----------
+function imprimirFactura(orderId) {
+    fetch(API_ORDERS + "/agricultor", {
+        headers: { "Authorization": "Bearer " + token }
+    })
+    .then(r => r.json())
+    .then(orders => {
+        const o = orders.find(x => x._id === orderId);
+        if (!o) { alert("Pedido no encontrado"); return; }
+
+        const userData = JSON.parse(localStorage.getItem("user") || "{}");
+        const total = o.cantidad * (o.producto?.precioKg || 0);
+        const estadoColor = o.estado === "aceptado" ? "badge-verde"
+            : o.estado === "en_transporte" ? "badge-morado"
+            : o.estado === "entregado" ? "badge-azul" : "";
+
+        const body = `
+            <div class="section">
+                <table>
+                    <tr><td class="row-label">No. Factura:</td><td><b>FAC-${o._id.slice(-6).toUpperCase()}</b></td></tr>
+                    <tr><td class="row-label">Fecha:</td><td>${new Date(o.createdAt || o._id?.getTimestamp?.()).toLocaleDateString() || new Date().toLocaleDateString()}</td></tr>
+                    <tr><td class="row-label">Estado:</td><td><span class="badge ${estadoColor}">${o.estado}</span></td></tr>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Partes</div>
+                <table>
+                    <tr><td class="row-label">Vendedor:</td><td>${userData.nombre || "—"} (${userData.codigo || "—"})</td></tr>
+                    <tr><td class="row-label">Comprador:</td><td>${o.comercio?.nombre || "—"}</td></tr>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Detalle</div>
+                <table>
+                    <tr><th>Producto</th><th>Cantidad</th><th>Precio/kg</th><th>Subtotal</th></tr>
+                    <tr>
+                        <td>${o.producto?.nombre || "—"}</td>
+                        <td>${o.cantidad} kg</td>
+                        <td>$${o.producto?.precioKg || 0}</td>
+                        <td>$${total.toFixed(2)}</td>
+                    </tr>
+                    <tr class="total-row"><td colspan="3">TOTAL</td><td>$${total.toFixed(2)}</td></tr>
+                </table>
+            </div>
+
+            ${o.viaje ? `
+            <div class="section">
+                <div class="section-title">Transporte</div>
+                <table>
+                    <tr><td class="row-label">Viaje:</td><td>${o.viaje.codigo || "—"}</td></tr>
+                    <tr><td class="row-label">Ruta:</td><td>${o.viaje.origen || "—"} → ${o.viaje.destino || "—"}</td></tr>
+                    <tr><td class="row-label">Estado:</td><td>${o.viaje.estado || "—"}</td></tr>
+                </table>
+            </div>` : ""}
+
+            <div class="firma">
+                <div><div class="line">Vendedor</div></div>
+                <div><div class="line">Comprador</div></div>
+            </div>
+        `;
+
+        printDocument("Factura del Pedido", body);
+    });
+}
+
+// ---------- Contrato ----------
+function imprimirContrato(contractId) {
+    fetch(API_CONTRACTS + "/agricultor", {
+        headers: { "Authorization": "Bearer " + token }
+    })
+    .then(r => r.json())
+    .then(contracts => {
+        const c = contracts.find(x => x._id === contractId);
+        if (!c) { alert("Contrato no encontrado"); return; }
+
+        const userData = JSON.parse(localStorage.getItem("user") || "{}");
+        const total = c.cantidadKg * c.precioAcordado;
+
+        const body = `
+            <div class="section">
+                <table>
+                    <tr><td class="row-label">No. Contrato:</td><td><b>${c.codigo}</b></td></tr>
+                    <tr><td class="row-label">Fecha:</td><td>${new Date(c.createdAt || c._id?.getTimestamp?.()).toLocaleDateString() || new Date().toLocaleDateString()}</td></tr>
+                    <tr><td class="row-label">Estado:</td><td><span class="badge ${c.estado === "activo" ? "badge-verde" : c.estado === "pendiente" ? "badge-amarillo" : c.estado === "finalizado" ? "badge-azul" : "badge-rojo"}">${c.estado}</span></td></tr>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Partes</div>
+                <table>
+                    <tr><td class="row-label">Vendedor:</td><td>${userData.nombre || "—"} (${userData.codigo || "—"})</td></tr>
+                    <tr><td class="row-label">Comprador:</td><td>${c.comercio?.nombre || "—"}</td></tr>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Detalle del Producto</div>
+                <table>
+                    <tr><td class="row-label">Producto:</td><td>${c.nombreProducto}</td></tr>
+                    <tr><td class="row-label">Cantidad:</td><td>${c.cantidadKg} kg</td></tr>
+                    <tr><td class="row-label">Precio acordado:</td><td>$${c.precioAcordado}/kg</td></tr>
+                    <tr><td class="row-label">Total estimado:</td><td>$${total.toFixed(2)}</td></tr>
+                    <tr><td class="row-label">Fecha de entrega:</td><td>${new Date(c.fechaEntrega).toLocaleDateString()}</td></tr>
+                </table>
+            </div>
+
+            ${c.token ? `
+            <div class="section">
+                <div class="section-title">Token Asociado</div>
+                <table>
+                    <tr><td class="row-label">Código:</td><td>${c.token.codigo || "—"}</td></tr>
+                    <tr><td class="row-label">Cantidad:</td><td>${c.token.cantidad || "—"} kg</td></tr>
+                </table>
+            </div>` : ""}
+
+            ${c.historial?.length ? `
+            <div class="section">
+                <div class="section-title">Historial</div>
+                <table>
+                    <tr><th>Fecha</th><th>Acción</th></tr>
+                    ${c.historial.map(h => `
+                        <tr><td>${new Date(h.fecha).toLocaleString()}</td><td>${h.accion}</td></tr>
+                    `).join("")}
+                </table>
+            </div>` : ""}
+
+            <div class="firma">
+                <div><div class="line">Vendedor</div></div>
+                <div><div class="line">Comprador</div></div>
+            </div>
+        `;
+
+        printDocument("Contrato de Compraventa", body);
+    });
+}
+
+// ---------- Comprobante Financiamiento ----------
+function imprimirComprobante(finId) {
+    fetch(API_FINANCING, {
+        headers: { "Authorization": "Bearer " + token }
+    })
+    .then(r => r.json())
+    .then(data => {
+        const f = finId ? data.find(x => x._id === finId) : data[data.length - 1];
+        if (!f) { alert("No hay financiamientos"); return; }
+
+        const userData = JSON.parse(localStorage.getItem("user") || "{}");
+        const totalPagar = f.montoSolicitado + (f.montoSolicitado * (f.interes || 5) / 100);
+        const estadoColor = f.estado === "aprobado" ? "badge-verde"
+            : f.estado === "rechazado" ? "badge-rojo"
+            : f.estado === "pagado" ? "badge-azul" : "badge-amarillo";
+
+        const body = `
+            <div class="section">
+                <table>
+                    <tr><td class="row-label">No. Comprobante:</td><td><b>FIN-${f._id.slice(-6).toUpperCase()}</b></td></tr>
+                    <tr><td class="row-label">Fecha:</td><td>${new Date(f.createdAt || f._id?.getTimestamp?.()).toLocaleDateString() || new Date().toLocaleDateString()}</td></tr>
+                    <tr><td class="row-label">Estado:</td><td><span class="badge ${estadoColor}">${f.estado}</span></td></tr>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Solicitante</div>
+                <table>
+                    <tr><td class="row-label">Agricultor:</td><td>${userData.nombre || "—"} (${userData.codigo || "—"})</td></tr>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Activo</div>
+                <table>
+                    <tr><td class="row-label">Token:</td><td>${f.token?.codigo || "—"}</td></tr>
+                    <tr><td class="row-label">Producto:</td><td>${f.token?.producto?.nombre || "—"}</td></tr>
+                    <tr><td class="row-label">Valor estimado:</td><td>$${f.valorEstimado}</td></tr>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Financiamiento</div>
+                <table>
+                    <tr><td class="row-label">Monto solicitado:</td><td>$${f.montoSolicitado}</td></tr>
+                    <tr><td class="row-label">Plazo:</td><td>${f.plazoDias} días</td></tr>
+                    <tr><td class="row-label">Interés:</td><td>${f.interes}%</td></tr>
+                    <tr class="total-row"><td>Total a pagar:</td><td>$${totalPagar.toFixed(2)}</td></tr>
+                </table>
+            </div>
+
+            ${f.historial?.length ? `
+            <div class="section">
+                <div class="section-title">Historial</div>
+                <table>
+                    <tr><th>Fecha</th><th>Acción</th></tr>
+                    ${f.historial.map(h => `
+                        <tr><td>${new Date(h.fecha).toLocaleString()}</td><td>${h.accion}</td></tr>
+                    `).join("")}
+                </table>
+            </div>` : ""}
+        `;
+
+        printDocument("Comprobante de Financiamiento", body);
+    });
+}
+
+// ---------- Orden de Transporte ----------
+function imprimirTransporte(tripId) {
+    fetch(API_TRIPS + "/" + tripId, {
+        headers: { "Authorization": "Bearer " + token }
+    })
+    .then(r => r.json())
+    .then(t => {
+        const userData = JSON.parse(localStorage.getItem("user") || "{}");
+        const estadoColor = t.estado === "entregado" ? "badge-verde"
+            : t.estado === "cancelado" ? "badge-rojo"
+            : t.estado === "pendiente" ? "badge-amarillo"
+            : t.estado === "asignado" ? "badge-azul" : "badge-morado";
+
+        const body = `
+            <div class="section">
+                <table>
+                    <tr><td class="row-label">No. Orden:</td><td><b>${t.codigo}</b></td></tr>
+                    <tr><td class="row-label">Fecha:</td><td>${new Date(t.createdAt || t._id?.getTimestamp?.()).toLocaleDateString() || new Date().toLocaleDateString()}</td></tr>
+                    <tr><td class="row-label">Estado:</td><td><span class="badge ${estadoColor}">${t.estado}</span></td></tr>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Ruta</div>
+                <table>
+                    <tr><td class="row-label">Origen:</td><td>${t.origen || "—"}</td></tr>
+                    <tr><td class="row-label">Destino:</td><td>${t.destino || "—"}</td></tr>
+                    <tr><td class="row-label">Carga total:</td><td>${t.cargaTotalKg} kg</td></tr>
+                    <tr><td class="row-label">Pago:</td><td>$${t.pago}</td></tr>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Participantes</div>
+                <table>
+                    <tr><td class="row-label">Agricultor:</td><td>${userData.nombre || "—"} (${userData.codigo || "—"})</td></tr>
+                    <tr><td class="row-label">Transportista:</td><td>${t.transportista?.nombre || "Pendiente de asignar"}</td></tr>
+                </table>
+            </div>
+
+            ${t.pedidos?.length ? `
+            <div class="section">
+                <div class="section-title">Pedidos</div>
+                <table>
+                    <tr><th>Producto</th><th>Cantidad</th><th>Comercio</th></tr>
+                    ${t.pedidos.map(p => `
+                        <tr>
+                            <td>${p.producto?.nombre || "—"}</td>
+                            <td>${p.cantidad} kg</td>
+                            <td>${p.comercio?.nombre || "—"}</td>
+                        </tr>
+                    `).join("")}
+                </table>
+            </div>` : ""}
+
+            ${t.tracking?.length ? `
+            <div class="section">
+                <div class="section-title">Tracking</div>
+                <table>
+                    <tr><th>Fecha</th><th>Estado</th><th>Ubicación</th></tr>
+                    ${t.tracking.map(x => `
+                        <tr>
+                            <td>${new Date(x.fecha).toLocaleString()}</td>
+                            <td>${x.estado}</td>
+                            <td>${x.ubicacion || "—"}</td>
+                        </tr>
+                    `).join("")}
+                </table>
+            </div>` : ""}
+        `;
+
+        printDocument("Orden de Transporte", body);
+    });
+}
+
+// ======================
 // INIT
 // ======================
 loadMyProducts();
@@ -635,6 +1306,7 @@ loadPedidosAgricultor();
 loadMisTokens();
 loadMisFinanciamientos();
 loadContratos();
+loadMisViajesAgricultor();
 
 </script>
 

@@ -327,11 +327,25 @@ async function renderMisPedidos() {
         content.innerHTML = data.map(o => {
             const color = o.estado === "aceptado" ? "bg-green-100 border-green-300"
                 : o.estado === "rechazado" ? "bg-red-100 border-red-300"
+                : o.estado === "entregado" ? "bg-blue-100 border-blue-300"
+                : o.estado === "en_transporte" ? "bg-purple-100 border-purple-300"
                 : "bg-yellow-100 border-yellow-300";
 
             const badgeColor = o.estado === "aceptado" ? "bg-green-600"
                 : o.estado === "rechazado" ? "bg-red-600"
+                : o.estado === "entregado" ? "bg-blue-600"
+                : o.estado === "en_transporte" ? "bg-purple-600"
                 : "bg-yellow-500";
+
+            const badgeLabel = o.estado === "en_transporte" ? "En transporte"
+                : o.estado === "entregado" ? "Entregado"
+                : o.estado === "aceptado" ? "Aceptado"
+                : o.estado === "rechazado" ? "Rechazado"
+                : o.estado;
+
+            const ultimoTracking = o.viaje?.tracking?.length
+                ? o.viaje.tracking[o.viaje.tracking.length - 1]
+                : null;
 
             return `
                 <div class="border p-4 rounded-xl mb-3 ${color}">
@@ -340,9 +354,22 @@ async function renderMisPedidos() {
                             <p><b>Producto:</b> ${o.producto?.nombre || "—"}</p>
                             <p><b>Cantidad:</b> ${o.cantidad} kg</p>
                             <p><b>Agricultor:</b> ${o.agricultor?.nombre || "—"}</p>
+                            ${o.viaje ? `
+                                <div class="mt-2 p-2 bg-white border rounded text-sm">
+                                    <p><b>Viaje:</b> ${o.viaje.codigo || "—"} — ${o.viaje.origen || "—"} → ${o.viaje.destino || "—"}</p>
+                                    <p><b>Transportista:</b> ${o.viaje.transportista?.nombre || "Pendiente"}</p>
+                                    <p><b>Estado actual:</b> ${o.viaje.estado || "—"}</p>
+                                    ${ultimoTracking ? `
+                                        <p class="text-xs text-gray-400 mt-1">
+                                            Última actualización: ${new Date(ultimoTracking.fecha).toLocaleString()}
+                                            ${ultimoTracking.ubicacion ? "— " + ultimoTracking.ubicacion : ""}
+                                        </p>
+                                    ` : ""}
+                                </div>
+                            ` : ""}
                         </div>
                         <span class="text-white px-3 py-1 rounded text-sm font-bold ${badgeColor}">
-                            ${o.estado}
+                            ${badgeLabel}
                         </span>
                     </div>
                 </div>
