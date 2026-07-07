@@ -372,6 +372,14 @@ async function renderMisPedidos() {
                             ${badgeLabel}
                         </span>
                     </div>
+                    ${o.estado !== "pendiente" && o.estado !== "rechazado" ? `
+                        <div class="mt-2">
+                            <button onclick="imprimirFacturaComercio('${o._id}')"
+                                class="text-blue-600 text-sm font-bold">
+                                🖨️ Imprimir factura
+                            </button>
+                        </div>
+                    ` : ""}
                 </div>
             `;
         }).join("");
@@ -473,10 +481,14 @@ async function renderContratos() {
                                         ${badgeLabel(c.estado)}
                                     </span>
                                 </td>
-                                <td class="p-3">
+                                <td class="p-3 flex gap-2">
                                     <button onclick="verContrato('${c._id}')"
                                         class="text-blue-600 text-sm font-bold">
                                         Ver
+                                    </button>
+                                    <button onclick="imprimirContratoComercio('${c._id}')"
+                                        class="text-blue-600 text-sm font-bold">
+                                        🖨️
                                     </button>
                                 </td>
                             </tr>
@@ -580,12 +592,18 @@ async function renderContratoDetalle(id) {
                     </details>
                 ` : ""}
 
-                ${c.estado !== "finalizado" && c.estado !== "cancelado" && c.estado !== "rechazado" ? `
-                    <button onclick="cancelarContrato('${c._id}')"
-                        class="mt-4 text-red-500 text-sm font-bold">
-                        Cancelar contrato
+                <div class="mt-4 flex gap-4">
+                    <button onclick="imprimirContratoComercio('${c._id}')"
+                        class="text-blue-600 text-sm font-bold">
+                        🖨️ Imprimir contrato
                     </button>
-                ` : ""}
+                    ${c.estado !== "finalizado" && c.estado !== "cancelado" && c.estado !== "rechazado" ? `
+                        <button onclick="cancelarContrato('${c._id}')"
+                            class="text-red-500 text-sm font-bold">
+                            Cancelar contrato
+                        </button>
+                    ` : ""}
+                </div>
             </div>
         `;
     } catch (e) {
@@ -785,6 +803,198 @@ function renderPerfil() {
             </div>
         </div>
     `;
+}
+
+// ======================
+// PDF
+// ======================
+function printDocument(titulo, bodyHtml) {
+    const userData = JSON.parse(localStorage.getItem("user") || "{}");
+    const now = new Date().toLocaleString();
+
+    const css = `
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; padding: 40px; }
+        .header { text-align: center; border-bottom: 3px solid #166534; padding-bottom: 20px; margin-bottom: 30px; }
+        .header h1 { color: #166534; font-size: 24px; }
+        .header p { color: #666; font-size: 12px; }
+        .doc-title { font-size: 18px; font-weight: bold; text-align: center; margin-bottom: 25px; color: #166534; }
+        .section { margin-bottom: 20px; }
+        .section-title { font-weight: bold; font-size: 14px; color: #166534; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        td, th { padding: 6px 8px; text-align: left; font-size: 13px; }
+        th { background: #f0fdf4; color: #166534; font-weight: bold; }
+        .row-label { font-weight: bold; color: #444; width: 140px; }
+        .total-row td { font-weight: bold; border-top: 2px solid #166534; }
+        .firma { margin-top: 50px; display: flex; justify-content: space-between; }
+        .firma div { text-align: center; width: 200px; }
+        .firma .line { border-top: 1px solid #333; margin-top: 40px; padding-top: 5px; font-size: 12px; }
+        .footer { margin-top: 40px; text-align: center; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 15px; }
+    </style>`;
+
+    const win = window.open("", "_blank");
+    win.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="UTF-8"><title>${titulo}</title>${css}</head>
+        <body>
+            <div class="header">
+                <h1>CosechaDirecta</h1>
+                <p>Plataforma de Comercio Agrícola</p>
+            </div>
+            <div class="doc-title">${titulo}</div>
+            ${bodyHtml}
+            <div class="footer">
+                <p>Documento generado el ${now} por ${userData.nombre || "—"} (${userData.codigo || "—"})</p>
+                <p>CosechaDirecta &copy; ${new Date().getFullYear()}</p>
+            </div>
+        </body>
+        </html>
+    `);
+    win.document.close();
+
+    setTimeout(() => {
+        win.focus();
+        win.print();
+    }, 300);
+}
+
+// ---------- Factura Pedido (Comercio) ----------
+function imprimirFacturaComercio(orderId) {
+    fetch(API_ORDERS + "/comercio", {
+        headers: { "Authorization": "Bearer " + token }
+    })
+    .then(r => r.json())
+    .then(orders => {
+        const o = orders.find(x => x._id === orderId);
+        if (!o) { alert("Pedido no encontrado"); return; }
+
+        const userData = JSON.parse(localStorage.getItem("user") || "{}");
+        const total = o.cantidad * (o.producto?.precioKg || 0);
+        const badgeClass = o.estado === "aceptado" ? "background:#166534;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:bold"
+            : o.estado === "en_transporte" ? "background:#7c3aed;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:bold"
+            : o.estado === "entregado" ? "background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:bold"
+            : "";
+
+        const body = `
+            <div class="section">
+                <table>
+                    <tr><td class="row-label">No. Factura:</td><td><b>FAC-${o._id.slice(-6).toUpperCase()}</b></td></tr>
+                    <tr><td class="row-label">Fecha:</td><td>${new Date(o.createdAt || o._id?.getTimestamp?.()).toLocaleDateString() || new Date().toLocaleDateString()}</td></tr>
+                    <tr><td class="row-label">Estado:</td><td><span style="${badgeClass}">${o.estado}</span></td></tr>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Partes</div>
+                <table>
+                    <tr><td class="row-label">Comprador:</td><td>${userData.nombre || "—"} (${userData.codigo || "—"})</td></tr>
+                    <tr><td class="row-label">Vendedor:</td><td>${o.agricultor?.nombre || "—"}</td></tr>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Detalle</div>
+                <table>
+                    <tr><th>Producto</th><th>Cantidad</th><th>Precio/kg</th><th>Subtotal</th></tr>
+                    <tr>
+                        <td>${o.producto?.nombre || "—"}</td>
+                        <td>${o.cantidad} kg</td>
+                        <td>$${o.producto?.precioKg || 0}</td>
+                        <td>$${total.toFixed(2)}</td>
+                    </tr>
+                    <tr class="total-row"><td colspan="3">TOTAL</td><td>$${total.toFixed(2)}</td></tr>
+                </table>
+            </div>
+
+            ${o.viaje ? `
+            <div class="section">
+                <div class="section-title">Transporte</div>
+                <table>
+                    <tr><td class="row-label">Viaje:</td><td>${o.viaje.codigo || "—"}</td></tr>
+                    <tr><td class="row-label">Ruta:</td><td>${o.viaje.origen || "—"} → ${o.viaje.destino || "—"}</td></tr>
+                    <tr><td class="row-label">Transportista:</td><td>${o.viaje.transportista?.nombre || "Pendiente"}</td></tr>
+                    <tr><td class="row-label">Estado:</td><td>${o.viaje.estado || "—"}</td></tr>
+                </table>
+            </div>` : ""}
+
+            <div class="firma">
+                <div><div class="line">Comprador</div></div>
+                <div><div class="line">Vendedor</div></div>
+            </div>
+        `;
+
+        printDocument("Factura del Pedido", body);
+    });
+}
+
+// ---------- Contrato (Comercio) ----------
+function imprimirContratoComercio(contractId) {
+    fetch(API_CONTRACTS + "/" + contractId, {
+        headers: { "Authorization": "Bearer " + token }
+    })
+    .then(r => r.json())
+    .then(c => {
+        const userData = JSON.parse(localStorage.getItem("user") || "{}");
+        const total = c.cantidadKg * c.precioAcordado;
+
+        const body = `
+            <div class="section">
+                <table>
+                    <tr><td class="row-label">No. Contrato:</td><td><b>${c.codigo}</b></td></tr>
+                    <tr><td class="row-label">Fecha:</td><td>${new Date(c.createdAt || c._id?.getTimestamp?.()).toLocaleDateString() || new Date().toLocaleDateString()}</td></tr>
+                    <tr><td class="row-label">Estado:</td><td><span style="background:${c.estado === "activo" ? "#166534" : c.estado === "pendiente" ? "#ca8a04" : c.estado === "finalizado" ? "#2563eb" : "#dc2626"};color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:bold">${c.estado}</span></td></tr>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Partes</div>
+                <table>
+                    <tr><td class="row-label">Comprador:</td><td>${userData.nombre || "—"} (${userData.codigo || "—"})</td></tr>
+                    <tr><td class="row-label">Vendedor:</td><td>${c.agricultor?.nombre || "—"}</td></tr>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Detalle del Producto</div>
+                <table>
+                    <tr><td class="row-label">Producto:</td><td>${c.nombreProducto}</td></tr>
+                    <tr><td class="row-label">Cantidad:</td><td>${c.cantidadKg} kg</td></tr>
+                    <tr><td class="row-label">Precio acordado:</td><td>$${c.precioAcordado}/kg</td></tr>
+                    <tr class="total-row"><td>Total estimado:</td><td>$${total.toFixed(2)}</td></tr>
+                    <tr><td class="row-label">Fecha de entrega:</td><td>${new Date(c.fechaEntrega).toLocaleDateString()}</td></tr>
+                </table>
+            </div>
+
+            ${c.token ? `
+            <div class="section">
+                <div class="section-title">Token Asociado</div>
+                <table>
+                    <tr><td class="row-label">Código:</td><td>${c.token.codigo || "—"}</td></tr>
+                    <tr><td class="row-label">Cantidad:</td><td>${c.token.cantidad || "—"} kg</td></tr>
+                </table>
+            </div>` : ""}
+
+            ${c.historial?.length ? `
+            <div class="section">
+                <div class="section-title">Historial</div>
+                <table>
+                    <tr><th>Fecha</th><th>Acción</th></tr>
+                    ${c.historial.map(h => `
+                        <tr><td>${new Date(h.fecha).toLocaleString()}</td><td>${h.accion}</td></tr>
+                    `).join("")}
+                </table>
+            </div>` : ""}
+
+            <div class="firma">
+                <div><div class="line">Comprador</div></div>
+                <div><div class="line">Vendedor</div></div>
+            </div>
+        `;
+
+        printDocument("Contrato de Compraventa", body);
+    });
 }
 
 // ======================
