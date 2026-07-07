@@ -33,6 +33,9 @@ app.use("/api/financiamiento", financingRoutes);
 const tripRoutes = require("./routes/tripRoutes");
 app.use("/api/trips", tripRoutes);
 
+const adminRoutes = require("./routes/adminRoutes");
+app.use("/api/admin", adminRoutes);
+
 app.get("/", (req, res) => {
     res.send("API CosechaDirecta funcionando 🚀");
 });

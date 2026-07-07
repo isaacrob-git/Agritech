@@ -2,185 +2,667 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Dashboard Admin | CosechaDirecta</title>
+<title>Dashboard Administrador | CosechaDirecta</title>
 <script src="https://cdn.tailwindcss.com"></script>
 </head>
-
 <body class="bg-gray-50 flex min-h-screen">
 
+<!-- SIDEBAR -->
 <aside class="w-64 bg-green-800 text-white p-4 flex flex-col">
     <h1 class="text-xl font-bold mb-6">CosechaDirecta</h1>
 
     <nav class="space-y-2 flex-1">
-        <button onclick="navigate('Dashboard')" class="nav-btn block w-full text-left p-2 rounded hover:bg-green-700">
-            Dashboard
-        </button>
-        <button onclick="navigate('Financiamientos')" class="nav-btn block w-full text-left p-2 rounded hover:bg-green-700">
-            Financiamientos
-        </button>
-        <button onclick="navigate('Perfil')" class="nav-btn block w-full text-left p-2 rounded hover:bg-green-700">
-            Perfil
-        </button>
+        <button onclick="navigate('Dashboard')" class="nav-btn block w-full text-left p-2 rounded hover:bg-green-700">Dashboard</button>
+        <button onclick="navigate('Usuarios')" class="nav-btn block w-full text-left p-2 rounded hover:bg-green-700">Usuarios</button>
+        <button onclick="navigate('Productos')" class="nav-btn block w-full text-left p-2 rounded hover:bg-green-700">Productos</button>
+        <button onclick="navigate('Pedidos')" class="nav-btn block w-full text-left p-2 rounded hover:bg-green-700">Pedidos</button>
+        <button onclick="navigate('Contratos')" class="nav-btn block w-full text-left p-2 rounded hover:bg-green-700">Contratos</button>
+        <button onclick="navigate('Tokens')" class="nav-btn block w-full text-left p-2 rounded hover:bg-green-700">Tokens</button>
+        <button onclick="navigate('Viajes')" class="nav-btn block w-full text-left p-2 rounded hover:bg-green-700">Viajes</button>
+        <button onclick="navigate('Financiamientos')" class="nav-btn block w-full text-left p-2 rounded hover:bg-green-700">Financiamientos</button>
+        <button onclick="navigate('Perfil')" class="nav-btn block w-full text-left p-2 rounded hover:bg-green-700">Perfil</button>
     </nav>
 
-    <button onclick="cerrarSesion()" class="bg-red-500 w-full p-2 rounded hover:bg-red-600">
-        Salir
-    </button>
+    <button onclick="cerrarSesion()" class="bg-red-500 w-full p-2 rounded hover:bg-red-600">Cerrar sesión</button>
 </aside>
 
+<!-- MAIN -->
 <main class="flex-1 p-6">
     <h2 id="title" class="text-2xl font-bold mb-4">Dashboard</h2>
     <div id="content"></div>
 </main>
 
 <script>
+const API_ADMIN = "http://localhost:3000/api/admin";
 const API_FINANCING = "http://localhost:3000/api/financiamiento";
+const API_CONTRACTS = "http://localhost:3000/api/contracts";
 const token = localStorage.getItem("token");
 const user = JSON.parse(localStorage.getItem("user") || "{}");
 
-if (!token || !user) {
-    window.location.href = "../login.html";
-}
+if (!token || !user) window.location.href = "../login.html";
 
 function navigate(section) {
     document.getElementById("title").innerText = section;
-
     const fns = {
-        "Dashboard": renderDashboard,
-        "Financiamientos": renderFinanciamientos,
-        "Perfil": renderPerfil
+        Dashboard: renderDashboard, Usuarios: renderUsuarios, Productos: renderProductos,
+        Pedidos: renderPedidos, Contratos: renderContratos, Tokens: renderTokens,
+        Viajes: renderViajes, Financiamientos: renderFinanciamientos, Perfil: renderPerfil
     };
-
     if (fns[section]) fns[section]();
 }
 
-function renderDashboard() {
-    const content = document.getElementById("content");
-    content.innerHTML = `
-        <div class="bg-white p-6 rounded-xl shadow">
-            <p class="text-xl font-bold">Bienvenido, ${user.nombre || "Admin"}</p>
-            <p class="text-gray-500 mt-2">Panel de administración de CosechaDirecta</p>
-        </div>
-        <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4" id="statsBox"></div>
-    `;
-
-    fetch(API_FINANCING + "/pendientes", {
-        headers: { "Authorization": "Bearer " + token }
-    })
-    .then(r => r.json())
-    .then(data => {
-        document.getElementById("statsBox").innerHTML = `
-            <div class="bg-white p-6 rounded-xl shadow">
-                <p class="text-gray-500 text-sm">Solicitudes pendientes</p>
-                <p class="text-3xl font-bold">${data.length}</p>
-            </div>
-        `;
-    })
-    .catch(() => {});
-}
-
-async function renderFinanciamientos() {
-    const content = document.getElementById("content");
-    content.innerHTML = "<p class='text-gray-500'>Cargando...</p>";
+// ======================
+// DASHBOARD
+// ======================
+async function renderDashboard() {
+    const c = document.getElementById("content");
+    c.innerHTML = `<p class='text-gray-500'>Cargando...</p>`;
 
     try {
-        const res = await fetch(API_FINANCING + "/pendientes", {
-            headers: { "Authorization": "Bearer " + token }
-        });
+        const [usuarios, productos, pedidos, contratos, tokens, viajes, financs] = await Promise.all([
+            fetch(API_ADMIN + "/usuarios", { headers: { Authorization: "Bearer " + token } }).then(r => r.json()),
+            fetch(API_ADMIN + "/productos", { headers: { Authorization: "Bearer " + token } }).then(r => r.json()),
+            fetch(API_ADMIN + "/pedidos", { headers: { Authorization: "Bearer " + token } }).then(r => r.json()),
+            fetch(API_ADMIN + "/contratos", { headers: { Authorization: "Bearer " + token } }).then(r => r.json()),
+            fetch(API_ADMIN + "/tokens", { headers: { Authorization: "Bearer " + token } }).then(r => r.json()),
+            fetch(API_ADMIN + "/viajes", { headers: { Authorization: "Bearer " + token } }).then(r => r.json()),
+            fetch(API_FINANCING + "/pendientes", { headers: { Authorization: "Bearer " + token } }).then(r => r.json()).catch(() => [])
+        ]);
 
+        const len = (a) => (Array.isArray(a) ? a.length : 0);
+
+        c.innerHTML = `
+            <p class="text-gray-500 mb-6">Bienvenido, ${user.nombre || "Admin"}</p>
+            <div class="grid grid-cols-4 gap-4">
+                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-blue-600">
+                    <p class="text-sm text-blue-600 font-bold">USUARIOS</p>
+                    <p class="text-3xl font-bold">${len(usuarios)}</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-green-600">
+                    <p class="text-sm text-green-600 font-bold">PRODUCTOS</p>
+                    <p class="text-3xl font-bold">${len(productos)}</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-yellow-600">
+                    <p class="text-sm text-yellow-600 font-bold">PEDIDOS</p>
+                    <p class="text-3xl font-bold">${len(pedidos)}</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-indigo-600">
+                    <p class="text-sm text-indigo-600 font-bold">CONTRATOS</p>
+                    <p class="text-3xl font-bold">${len(contratos)}</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-purple-600">
+                    <p class="text-sm text-purple-600 font-bold">TOKENS</p>
+                    <p class="text-3xl font-bold">${len(tokens)}</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-orange-600">
+                    <p class="text-sm text-orange-600 font-bold">VIAJES</p>
+                    <p class="text-3xl font-bold">${len(viajes)}</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-red-600">
+                    <p class="text-sm text-red-600 font-bold">FINANC. PENDIENTES</p>
+                    <p class="text-3xl font-bold">${len(financs)}</p>
+                </div>
+            </div>
+        `;
+    } catch (e) {
+        c.innerHTML = "<p class='text-red-500'>Error al cargar dashboard</p>";
+    }
+}
+
+// ======================
+// USUARIOS
+// ======================
+async function renderUsuarios() {
+    const c = document.getElementById("content");
+
+    try {
+        const res = await fetch(API_ADMIN + "/usuarios", { headers: { Authorization: "Bearer " + token } });
         const data = await res.json();
 
-        if (!data.length) {
-            content.innerHTML = "<p class='text-gray-500'>No hay solicitudes pendientes</p>";
-            return;
-        }
+        c.innerHTML = `
+            <div class="bg-white rounded-xl shadow overflow-x-auto">
+                <table class="w-full">
+                    <thead><tr class="bg-gray-100 text-left">
+                        <th class="p-3">Código</th><th class="p-3">Nombre</th><th class="p-3">Email</th><th class="p-3">Rol</th><th class="p-3">Registro</th>
+                    </tr></thead>
+                    <tbody>
+                        ${data.map(u => `
+                            <tr class="border-b hover:bg-gray-50">
+                                <td class="p-3 font-bold">${u.codigo || "—"}</td>
+                                <td class="p-3">${u.nombre || "—"}</td>
+                                <td class="p-3">${u.email || "—"}</td>
+                                <td class="p-3"><span class="text-white px-2 py-0.5 rounded text-xs font-bold ${u.rol === "admin" ? "bg-red-600" : u.rol === "agricultor" ? "bg-green-600" : u.rol === "comercio" ? "bg-blue-600" : "bg-purple-600"}">${u.rol}</span></td>
+                                <td class="p-3 text-sm text-gray-500">${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}</td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } catch (e) {
+        c.innerHTML = "<p class='text-red-500'>Error al cargar usuarios</p>";
+    }
+}
 
-        content.innerHTML = data.map(f => `
-            <div class="border border-yellow-300 bg-yellow-50 p-4 rounded-xl mb-3">
+// ======================
+// PRODUCTOS
+// ======================
+async function renderProductos() {
+    const c = document.getElementById("content");
+
+    try {
+        const res = await fetch(API_ADMIN + "/productos", { headers: { Authorization: "Bearer " + token } });
+        const data = await res.json();
+
+        c.innerHTML = `
+            <div class="bg-white rounded-xl shadow overflow-x-auto">
+                <table class="w-full">
+                    <thead><tr class="bg-gray-100 text-left">
+                        <th class="p-3">Producto</th><th class="p-3">Agricultor</th><th class="p-3">Cantidad</th><th class="p-3">Precio/kg</th><th class="p-3">Ubicación</th><th class="p-3">Estado</th>
+                    </tr></thead>
+                    <tbody>
+                        ${data.map(p => `
+                            <tr class="border-b hover:bg-gray-50">
+                                <td class="p-3 font-bold">${p.nombre}</td>
+                                <td class="p-3">${p.agricultor?.nombre || "—"}</td>
+                                <td class="p-3">${p.cantidad} kg</td>
+                                <td class="p-3">$${p.precioKg}</td>
+                                <td class="p-3">${p.ubicacion}</td>
+                                <td class="p-3"><span class="text-white px-2 py-0.5 rounded text-xs font-bold ${p.estado === "disponible" ? "bg-green-600" : "bg-red-600"}">${p.estado}</span></td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } catch (e) {
+        c.innerHTML = "<p class='text-red-500'>Error al cargar productos</p>";
+    }
+}
+
+// ======================
+// PEDIDOS
+// ======================
+async function renderPedidos() {
+    const c = document.getElementById("content");
+
+    try {
+        const res = await fetch(API_ADMIN + "/pedidos", { headers: { Authorization: "Bearer " + token } });
+        const data = await res.json();
+
+        const badge = (e) => ({
+            pendiente: "bg-yellow-500", aceptado: "bg-green-600", rechazado: "bg-red-600",
+            en_transporte: "bg-purple-600", entregado: "bg-blue-600"
+        }[e] || "bg-gray-400");
+
+        c.innerHTML = `
+            <div class="bg-white rounded-xl shadow overflow-x-auto">
+                <table class="w-full">
+                    <thead><tr class="bg-gray-100 text-left">
+                        <th class="p-3">ID</th><th class="p-3">Producto</th><th class="p-3">Cantidad</th><th class="p-3">Comercio</th><th class="p-3">Agricultor</th><th class="p-3">Estado</th><th class="p-3"></th>
+                    </tr></thead>
+                    <tbody>
+                        ${data.map(o => `
+                            <tr class="border-b hover:bg-gray-50">
+                                <td class="p-3 text-xs font-mono">${o._id.slice(-6)}</td>
+                                <td class="p-3 font-bold">${o.producto?.nombre || "—"}</td>
+                                <td class="p-3">${o.cantidad} kg</td>
+                                <td class="p-3">${o.comercio?.nombre || "—"}</td>
+                                <td class="p-3">${o.agricultor?.nombre || "—"}</td>
+                                <td class="p-3"><span class="text-white px-2 py-0.5 rounded text-xs font-bold ${badge(o.estado)}">${o.estado}</span></td>
+                                <td class="p-3">${o.estado !== "pendiente" && o.estado !== "rechazado" ? `<button onclick="imprimirFacturaPedido('${o._id}')" class="text-blue-600 text-sm">PDF</button>` : ""}</td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } catch (e) {
+        c.innerHTML = "<p class='text-red-500'>Error al cargar pedidos</p>";
+    }
+}
+
+// ======================
+// CONTRATOS
+// ======================
+let contratoDetalleId = null;
+
+async function renderContratos() {
+    const c = document.getElementById("content");
+    if (contratoDetalleId) { renderContratoDetalle(contratoDetalleId); return; }
+
+    try {
+        const res = await fetch(API_ADMIN + "/contratos", { headers: { Authorization: "Bearer " + token } });
+        const data = await res.json();
+
+        const badgeC = (e) => ({
+            pendiente: "bg-yellow-500", activo: "bg-blue-600", en_produccion: "bg-indigo-500",
+            en_transporte: "bg-purple-500", entregado: "bg-green-600", finalizado: "bg-gray-600",
+            rechazado: "bg-red-600", cancelado: "bg-red-400"
+        }[e] || "bg-gray-400");
+
+        c.innerHTML = `
+            <div class="bg-white rounded-xl shadow overflow-x-auto">
+                <table class="w-full">
+                    <thead><tr class="bg-gray-100 text-left">
+                        <th class="p-3">Código</th><th class="p-3">Producto</th><th class="p-3">Comercio</th><th class="p-3">Agricultor</th><th class="p-3">Cantidad</th><th class="p-3">Estado</th><th class="p-3"></th>
+                    </tr></thead>
+                    <tbody>
+                        ${data.map(c => `
+                            <tr class="border-b hover:bg-gray-50">
+                                <td class="p-3 font-bold">${c.codigo}</td>
+                                <td class="p-3">${c.nombreProducto}</td>
+                                <td class="p-3">${c.comercio?.nombre || "—"}</td>
+                                <td class="p-3">${c.agricultor?.nombre || "—"}</td>
+                                <td class="p-3">${c.cantidadKg} kg</td>
+                                <td class="p-3"><span class="text-white px-2 py-0.5 rounded text-xs font-bold ${badgeC(c.estado)}">${c.estado}</span></td>
+                                <td class="p-3 flex gap-1">
+                                    <button onclick="contratoDetalleId='${c._id}'; renderContratos();" class="text-blue-600 text-sm">Ver</button>
+                                    <button onclick="imprimirContratoAdmin('${c._id}')" class="text-blue-600 text-sm">PDF</button>
+                                </td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } catch (e) {
+        c.innerHTML = "<p class='text-red-500'>Error al cargar contratos</p>";
+    }
+}
+
+async function renderContratoDetalle(id) {
+    const c = document.getElementById("content");
+
+    try {
+        const res = await fetch(API_CONTRACTS + "/" + id, { headers: { Authorization: "Bearer " + token } });
+        const ct = await res.json();
+
+        const badgeC = (e) => ({
+            pendiente: "bg-yellow-500", activo: "bg-blue-600", en_produccion: "bg-indigo-500",
+            en_transporte: "bg-purple-500", entregado: "bg-green-600", finalizado: "bg-gray-600",
+            rechazado: "bg-red-600", cancelado: "bg-red-400"
+        }[e] || "bg-gray-400");
+
+        c.innerHTML = `
+            <button onclick="contratoDetalleId=null; renderContratos();" class="text-blue-600 mb-4 block">&larr; Volver</button>
+            <div class="bg-white p-6 rounded-xl shadow max-w-2xl">
+                <div class="flex justify-between items-start">
+                    <div><h3 class="text-2xl font-bold">${ct.codigo}</h3><p class="text-gray-500">${ct.nombreProducto}</p></div>
+                    <span class="text-white px-3 py-1 rounded text-sm font-bold ${badgeC(ct.estado)}">${ct.estado}</span>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mt-4">
+                    <div><p class="text-sm text-gray-500">Comercio</p><p class="font-bold">${ct.comercio?.nombre || "—"}</p></div>
+                    <div><p class="text-sm text-gray-500">Agricultor</p><p class="font-bold">${ct.agricultor?.nombre || "—"}</p></div>
+                    <div><p class="text-sm text-gray-500">Cantidad</p><p class="font-bold">${ct.cantidadKg} kg</p></div>
+                    <div><p class="text-sm text-gray-500">Precio</p><p class="font-bold">$${ct.precioAcordado}/kg</p></div>
+                    <div><p class="text-sm text-gray-500">Total</p><p class="font-bold text-green-700">$${(ct.cantidadKg * ct.precioAcordado).toFixed(2)}</p></div>
+                    <div><p class="text-sm text-gray-500">Entrega</p><p class="font-bold">${new Date(ct.fechaEntrega).toLocaleDateString()}</p></div>
+                </div>
+                ${ct.token ? `<div class="mt-4 p-3 bg-blue-50 rounded"><p class="text-sm">Token: ${ct.token.codigo} — ${ct.token.cantidad} kg</p></div>` : ""}
+                ${ct.historial?.length ? `
+                    <details class="mt-4"><summary class="text-sm text-gray-500 cursor-pointer font-bold">Historial</summary>
+                        <div class="mt-2 space-y-1">${ct.historial.map(h => `<p class="text-xs text-gray-400">${h.accion} — ${new Date(h.fecha).toLocaleString()}</p>`).join("")}</div>
+                    </details>` : ""}
+                <div class="mt-4 flex gap-2">
+                    <button onclick="imprimirContratoAdmin('${ct._id}')" class="bg-blue-600 text-white px-4 py-2 rounded font-bold">🖨️ PDF</button>
+                    ${ct.estado !== "finalizado" && ct.estado !== "cancelado" && ct.estado !== "rechazado" ? `<button onclick="adminCancelarContrato('${ct._id}')" class="bg-red-600 text-white px-4 py-2 rounded font-bold">Cancelar contrato</button>` : ""}
+                </div>
+            </div>
+        `;
+    } catch (e) {
+        c.innerHTML = "<p class='text-red-500'>Error al cargar contrato</p>";
+    }
+}
+
+async function adminCancelarContrato(id) {
+    if (!confirm("¿Cancelar este contrato? Esta acción no se puede deshacer.")) return;
+    const res = await fetch(`${API_CONTRACTS}/${id}/cancelar`, {
+        method: "PUT", headers: { Authorization: "Bearer " + token }
+    });
+    if (!res.ok) { const d = await res.json(); alert(d.message); return; }
+    alert("Contrato cancelado");
+    renderContratoDetalle(id);
+}
+
+// ======================
+// TOKENS
+// ======================
+async function renderTokens() {
+    const c = document.getElementById("content");
+
+    try {
+        const res = await fetch(API_ADMIN + "/tokens", { headers: { Authorization: "Bearer " + token } });
+        const data = await res.json();
+
+        const badgeT = (e) => ({
+            Disponible: "bg-green-600", Vendido: "bg-blue-600", Transferido: "bg-yellow-500",
+            Dividido: "bg-purple-600", Cancelado: "bg-red-600"
+        }[e] || "bg-gray-400");
+
+        c.innerHTML = `
+            <div class="bg-white rounded-xl shadow overflow-x-auto">
+                <table class="w-full">
+                    <thead><tr class="bg-gray-100 text-left">
+                        <th class="p-3">Código</th><th class="p-3">Activo</th><th class="p-3">Cantidad</th><th class="p-3">Propietario</th><th class="p-3">Estado</th><th class="p-3">Financiado</th><th class="p-3">Origen</th>
+                    </tr></thead>
+                    <tbody>
+                        ${data.map(t => `
+                            <tr class="border-b hover:bg-gray-50">
+                                <td class="p-3 font-bold">${t.codigo}</td>
+                                <td class="p-3">${t.nombreActivo}</td>
+                                <td class="p-3">${t.cantidad} kg</td>
+                                <td class="p-3">${t.propietario?.nombre || "—"}</td>
+                                <td class="p-3"><span class="text-white px-2 py-0.5 rounded text-xs font-bold ${badgeT(t.estado)}">${t.estado}</span></td>
+                                <td class="p-3">${t.financiado ? "✅ Sí" : "—"}</td>
+                                <td class="p-3 text-sm">${t.producto ? "Producto" : t.contrato ? "Contrato" : "—"}</td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } catch (e) {
+        c.innerHTML = "<p class='text-red-500'>Error al cargar tokens</p>";
+    }
+}
+
+// ======================
+// VIAJES
+// ======================
+async function renderViajes() {
+    const c = document.getElementById("content");
+
+    try {
+        const res = await fetch(API_ADMIN + "/viajes", { headers: { Authorization: "Bearer " + token } });
+        const data = await res.json();
+
+        const badgeV = (e) => ({
+            pendiente: "bg-yellow-500", asignado: "bg-blue-600", carga_recogida: "bg-indigo-500",
+            en_camino: "bg-purple-500", "llegó_a_destino": "bg-green-500", entregado: "bg-green-700", cancelado: "bg-red-600"
+        }[e] || "bg-gray-400");
+
+        c.innerHTML = `
+            <div class="bg-white rounded-xl shadow overflow-x-auto">
+                <table class="w-full">
+                    <thead><tr class="bg-gray-100 text-left">
+                        <th class="p-3">Código</th><th class="p-3">Ruta</th><th class="p-3">Carga</th><th class="p-3">Pago</th><th class="p-3">Transportista</th><th class="p-3">Agricultor</th><th class="p-3">Estado</th><th class="p-3"></th>
+                    </tr></thead>
+                    <tbody>
+                        ${data.map(t => `
+                            <tr class="border-b hover:bg-gray-50">
+                                <td class="p-3 font-bold">${t.codigo}</td>
+                                <td class="p-3">${t.origen} → ${t.destino}</td>
+                                <td class="p-3">${t.cargaTotalKg} kg</td>
+                                <td class="p-3">$${t.pago}</td>
+                                <td class="p-3">${t.transportista?.nombre || "—"}</td>
+                                <td class="p-3">${t.agricultor?.nombre || "—"}</td>
+                                <td class="p-3"><span class="text-white px-2 py-0.5 rounded text-xs font-bold ${badgeV(t.estado)}">${t.estado}</span></td>
+                                <td class="p-3"><button onclick="imprimirViajeAdmin('${t._id}')" class="text-blue-600 text-sm">PDF</button></td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } catch (e) {
+        c.innerHTML = "<p class='text-red-500'>Error al cargar viajes</p>";
+    }
+}
+
+// ======================
+// FINANCIAMIENTOS
+// ======================
+async function renderFinanciamientos() {
+    const c = document.getElementById("content");
+    c.innerHTML = `
+        <div class="flex gap-2 mb-4">
+            <button onclick="filtrarFin()" class="bg-gray-200 px-3 py-1 rounded text-sm font-bold">Todos</button>
+            <button onclick="filtrarFin('pendiente')" class="bg-yellow-500 text-white px-3 py-1 rounded text-sm font-bold">Pendientes</button>
+            <button onclick="filtrarFin('aprobado')" class="bg-green-600 text-white px-3 py-1 rounded text-sm font-bold">Aprobados</button>
+            <button onclick="filtrarFin('rechazado')" class="bg-red-600 text-white px-3 py-1 rounded text-sm font-bold">Rechazados</button>
+        </div>
+        <div id="finContent"><p class='text-gray-500'>Cargando...</p></div>
+    `;
+    filtrarFin();
+}
+
+async function filtrarFin(estado) {
+    const container = document.getElementById("finContent");
+    const url = estado ? API_ADMIN + "/financiamientos?estado=" + estado : API_ADMIN + "/financiamientos";
+
+    try {
+        const res = await fetch(url, { headers: { Authorization: "Bearer " + token } });
+        const data = await res.json();
+
+        if (!data.length) { container.innerHTML = "<p class='text-gray-500'>No hay resultados</p>"; return; }
+
+        container.innerHTML = data.map(f => `
+            <div class="border p-4 rounded-xl mb-3 ${f.estado === "pendiente" ? "bg-yellow-50 border-yellow-300" : f.estado === "aprobado" ? "bg-green-50 border-green-300" : "bg-red-50 border-red-300"}">
                 <div class="flex justify-between items-start">
                     <div>
                         <p><b>Agricultor:</b> ${f.agricultor?.nombre || "—"} (${f.agricultor?.codigo || "—"})</p>
-                        <p><b>Email:</b> ${f.agricultor?.email || "—"}</p>
-                        <p><b>Token:</b> ${f.token?.codigo || "—"} — ${f.token?.producto?.nombre || "—"}</p>
-                        <p><b>Valor estimado:</b> $${f.valorEstimado}</p>
-                        <p><b>Solicitado:</b> $${f.montoSolicitado}</p>
-                        <p><b>Plazo:</b> ${f.plazoDias} días | <b>Interés:</b> ${f.interes}%</p>
+                        <p><b>Token:</b> ${f.token?.codigo || "—"} — ${f.token?.producto?.nombre || f.token?.contrato?.nombreProducto || "—"}</p>
+                        <p><b>Valor estimado:</b> $${f.valorEstimado} | <b>Solicitado:</b> $${f.montoSolicitado} | <b>Plazo:</b> ${f.plazoDias} días | <b>Interés:</b> ${f.interes}%</p>
                     </div>
-                    <span class="bg-yellow-500 text-white px-3 py-1 rounded text-sm font-bold">${f.estado}</span>
+                    <span class="text-white px-3 py-1 rounded text-sm font-bold ${f.estado === "aprobado" ? "bg-green-600" : f.estado === "rechazado" ? "bg-red-600" : "bg-yellow-500"}">${f.estado}</span>
                 </div>
                 <div class="flex gap-2 mt-3">
-                    <button onclick="aprobarFinanciamiento('${f._id}')"
-                        class="bg-green-600 text-white px-4 py-2 rounded font-bold">
-                        Aprobar
-                    </button>
-                    <button onclick="rechazarFinanciamiento('${f._id}')"
-                        class="bg-red-600 text-white px-4 py-2 rounded font-bold">
-                        Rechazar
-                    </button>
+                    ${f.estado === "pendiente" ? `
+                        <button onclick="aprobarFin('${f._id}')" class="bg-green-600 text-white px-3 py-1 rounded text-sm font-bold">Aprobar</button>
+                        <button onclick="rechazarFin('${f._id}')" class="bg-red-600 text-white px-3 py-1 rounded text-sm font-bold">Rechazar</button>
+                    ` : ""}
+                    <button onclick="imprimirFinanciamientoAdmin('${f._id}')" class="text-blue-600 text-sm font-bold">PDF</button>
                 </div>
+                ${f.historial?.length ? `<details class="mt-2"><summary class="text-sm text-gray-500 cursor-pointer">Historial</summary>${f.historial.map(h => `<p class="text-xs text-gray-400 ml-2">${h.accion} — ${new Date(h.fecha).toLocaleString()}</p>`).join("")}</details>` : ""}
             </div>
         `).join("");
-
     } catch (e) {
-        content.innerHTML = "<p class='text-red-500'>Error al cargar solicitudes</p>";
+        container.innerHTML = "<p class='text-red-500'>Error al cargar</p>";
     }
 }
 
-async function aprobarFinanciamiento(id) {
+async function aprobarFin(id) {
     if (!confirm("¿Aprobar este financiamiento?")) return;
-
-    const res = await fetch(`${API_FINANCING}/${id}/aprobar`, {
-        method: "PUT",
-        headers: { "Authorization": "Bearer " + token }
-    });
-
-    if (!res.ok) {
-        const data = await res.json();
-        alert(data.message);
-        return;
-    }
-
+    const res = await fetch(`${API_FINANCING}/${id}/aprobar`, { method: "PUT", headers: { Authorization: "Bearer " + token } });
+    if (!res.ok) { const d = await res.json(); alert(d.message); return; }
     alert("Financiamiento aprobado");
-    renderFinanciamientos();
+    filtrarFin();
 }
 
-async function rechazarFinanciamiento(id) {
+async function rechazarFin(id) {
     if (!confirm("¿Rechazar este financiamiento?")) return;
-
-    const res = await fetch(`${API_FINANCING}/${id}/rechazar`, {
-        method: "PUT",
-        headers: { "Authorization": "Bearer " + token }
-    });
-
-    if (!res.ok) {
-        const data = await res.json();
-        alert(data.message);
-        return;
-    }
-
+    const res = await fetch(`${API_FINANCING}/${id}/rechazar`, { method: "PUT", headers: { Authorization: "Bearer " + token } });
+    if (!res.ok) { const d = await res.json(); alert(d.message); return; }
     alert("Financiamiento rechazado");
-    renderFinanciamientos();
+    filtrarFin();
 }
 
+// ======================
+// PERFIL
+// ======================
 function renderPerfil() {
-    const content = document.getElementById("content");
-    content.innerHTML = `
+    const c = document.getElementById("content");
+    c.innerHTML = `
         <div class="bg-white p-6 rounded-xl shadow max-w-md">
             <p class="text-2xl font-bold mb-4">${user.nombre || "—"}</p>
             <div class="space-y-2">
                 <p><b>Código:</b> ${user.codigo || "—"}</p>
                 <p><b>Email:</b> ${user.email || "—"}</p>
-                <p><b>Rol:</b> ${user.rol || "—"}</p>
+                <p><b>Rol:</b> <span class="bg-red-600 text-white px-2 py-0.5 rounded text-xs font-bold">${user.rol || "—"}</span></p>
             </div>
         </div>
     `;
 }
 
+// ======================
+// PDF
+// ======================
+function printDocument(titulo, bodyHtml) {
+    const userData = JSON.parse(localStorage.getItem("user") || "{}");
+    const now = new Date().toLocaleString();
+    const css = `
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; padding: 40px; }
+        .header { text-align: center; border-bottom: 3px solid #166534; padding-bottom: 20px; margin-bottom: 30px; }
+        .header h1 { color: #166534; font-size: 24px; }
+        .header p { color: #666; font-size: 12px; }
+        .doc-title { font-size: 18px; font-weight: bold; text-align: center; margin-bottom: 25px; color: #166534; }
+        .section { margin-bottom: 20px; }
+        .section-title { font-weight: bold; font-size: 14px; color: #166534; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        td, th { padding: 6px 8px; text-align: left; font-size: 13px; }
+        th { background: #f0fdf4; color: #166534; font-weight: bold; }
+        .row-label { font-weight: bold; color: #444; width: 140px; }
+        .total-row td { font-weight: bold; border-top: 2px solid #166534; }
+        .firma { margin-top: 50px; display: flex; justify-content: space-between; }
+        .firma div { text-align: center; width: 200px; }
+        .firma .line { border-top: 1px solid #333; margin-top: 40px; padding-top: 5px; font-size: 12px; }
+        .footer { margin-top: 40px; text-align: center; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 15px; }
+    </style>`;
+    const win = window.open("", "_blank");
+    win.document.write(`
+        <!DOCTYPE html>
+        <html><head><meta charset="UTF-8"><title>${titulo}</title>${css}</head>
+        <body>
+            <div class="header"><h1>CosechaDirecta</h1><p>Plataforma de Comercio Agrícola</p></div>
+            <div class="doc-title">${titulo}</div>
+            ${bodyHtml}
+            <div class="footer"><p>Documento generado el ${now} por ${userData.nombre || "—"} (${userData.codigo || "—"})</p><p>CosechaDirecta &copy; ${new Date().getFullYear()}</p></div>
+        </body></html>
+    `);
+    win.document.close();
+    setTimeout(() => { win.focus(); win.print(); }, 300);
+}
+
+function imprimirFacturaPedido(orderId) {
+    fetch(API_ADMIN + "/pedidos", { headers: { Authorization: "Bearer " + token } })
+    .then(r => r.json())
+    .then(all => {
+        const o = all.find(x => x._id === orderId);
+        if (!o) return;
+        const userData = JSON.parse(localStorage.getItem("user") || "{}");
+        const total = o.cantidad * (o.producto?.precioKg || 0);
+        printDocument("Factura del Pedido", `
+            <div class="section"><table>
+                <tr><td class="row-label">Factura:</td><td><b>FAC-${o._id.slice(-6).toUpperCase()}</b></td></tr>
+                <tr><td class="row-label">Fecha:</td><td>${new Date().toLocaleDateString()}</td></tr>
+                <tr><td class="row-label">Estado:</td><td>${o.estado}</td></tr>
+            </table></div>
+            <div class="section"><div class="section-title">Partes</div><table>
+                <tr><td class="row-label">Vendedor:</td><td>${o.agricultor?.nombre || "—"}</td></tr>
+                <tr><td class="row-label">Comprador:</td><td>${o.comercio?.nombre || "—"}</td></tr>
+            </table></div>
+            <div class="section"><div class="section-title">Detalle</div><table>
+                <tr><th>Producto</th><th>Cantidad</th><th>Precio/kg</th><th>Subtotal</th></tr>
+                <tr><td>${o.producto?.nombre || "—"}</td><td>${o.cantidad} kg</td><td>$${o.producto?.precioKg || 0}</td><td>$${total.toFixed(2)}</td></tr>
+                <tr class="total-row"><td colspan="3">TOTAL</td><td>$${total.toFixed(2)}</td></tr>
+            </table></div>
+            ${o.viaje ? `<div class="section"><div class="section-title">Transporte</div><table><tr><td class="row-label">Viaje:</td><td>${o.viaje.codigo || "—"}</td></tr><tr><td class="row-label">Ruta:</td><td>${o.viaje.origen || "—"} → ${o.viaje.destino || "—"}</td></tr></table></div>` : ""}
+            <div class="firma"><div><div class="line">Vendedor</div></div><div><div class="line">Comprador</div></div></div>
+        `);
+    });
+}
+
+function imprimirContratoAdmin(cid) {
+    fetch(API_CONTRACTS + "/" + cid, { headers: { Authorization: "Bearer " + token } })
+    .then(r => r.json())
+    .then(c => {
+        const total = c.cantidadKg * c.precioAcordado;
+        printDocument("Contrato de Compraventa", `
+            <div class="section"><table>
+                <tr><td class="row-label">Contrato:</td><td><b>${c.codigo}</b></td></tr>
+                <tr><td class="row-label">Fecha:</td><td>${new Date(c.createdAt || c._id?.getTimestamp?.()).toLocaleDateString() || new Date().toLocaleDateString()}</td></tr>
+                <tr><td class="row-label">Estado:</td><td>${c.estado}</td></tr>
+            </table></div>
+            <div class="section"><div class="section-title">Partes</div><table>
+                <tr><td class="row-label">Comprador:</td><td>${c.comercio?.nombre || "—"}</td></tr>
+                <tr><td class="row-label">Vendedor:</td><td>${c.agricultor?.nombre || "—"}</td></tr>
+            </table></div>
+            <div class="section"><div class="section-title">Detalle</div><table>
+                <tr><td class="row-label">Producto:</td><td>${c.nombreProducto}</td></tr>
+                <tr><td class="row-label">Cantidad:</td><td>${c.cantidadKg} kg</td></tr>
+                <tr><td class="row-label">Precio:</td><td>$${c.precioAcordado}/kg</td></tr>
+                <tr class="total-row"><td>Total:</td><td>$${total.toFixed(2)}</td></tr>
+                <tr><td class="row-label">Entrega:</td><td>${new Date(c.fechaEntrega).toLocaleDateString()}</td></tr>
+            </table></div>
+            ${c.token ? `<div class="section"><div class="section-title">Token</div><table><tr><td class="row-label">Código:</td><td>${c.token.codigo}</td></tr><tr><td class="row-label">Cantidad:</td><td>${c.token.cantidad} kg</td></tr></table></div>` : ""}
+            ${c.historial?.length ? `<div class="section"><div class="section-title">Historial</div><table>${c.historial.map(h => `<tr><td>${new Date(h.fecha).toLocaleString()}</td><td>${h.accion}</td></tr>`).join("")}</table></div>` : ""}
+            <div class="firma"><div><div class="line">Comprador</div></div><div><div class="line">Vendedor</div></div></div>
+        `);
+    });
+}
+
+function imprimirFinanciamientoAdmin(finId) {
+    fetch(API_ADMIN + "/financiamientos", { headers: { Authorization: "Bearer " + token } })
+    .then(r => r.json())
+    .then(all => {
+        const f = all.find(x => x._id === finId);
+        if (!f) return;
+        const totalPagar = f.montoSolicitado + (f.montoSolicitado * (f.interes || 5) / 100);
+        printDocument("Comprobante de Financiamiento", `
+            <div class="section"><table>
+                <tr><td class="row-label">Comprobante:</td><td><b>FIN-${f._id.slice(-6).toUpperCase()}</b></td></tr>
+                <tr><td class="row-label">Fecha:</td><td>${new Date(f.createdAt || f._id?.getTimestamp?.()).toLocaleDateString() || new Date().toLocaleDateString()}</td></tr>
+                <tr><td class="row-label">Estado:</td><td>${f.estado}</td></tr>
+            </table></div>
+            <div class="section"><div class="section-title">Solicitante</div><table><tr><td class="row-label">Agricultor:</td><td>${f.agricultor?.nombre || "—"} (${f.agricultor?.codigo || "—"})</td></tr></table></div>
+            <div class="section"><div class="section-title">Activo</div><table>
+                <tr><td class="row-label">Token:</td><td>${f.token?.codigo || "—"}</td></tr>
+                <tr><td class="row-label">Valor estimado:</td><td>$${f.valorEstimado}</td></tr>
+            </table></div>
+            <div class="section"><div class="section-title">Financiamiento</div><table>
+                <tr><td class="row-label">Monto:</td><td>$${f.montoSolicitado}</td></tr>
+                <tr><td class="row-label">Plazo:</td><td>${f.plazoDias} días</td></tr>
+                <tr><td class="row-label">Interés:</td><td>${f.interes}%</td></tr>
+                <tr class="total-row"><td>Total a pagar:</td><td>$${totalPagar.toFixed(2)}</td></tr>
+            </table></div>
+        `);
+    });
+}
+
+function imprimirViajeAdmin(tripId) {
+    fetch(API_ADMIN + "/viajes", { headers: { Authorization: "Bearer " + token } })
+    .then(r => r.json())
+    .then(all => {
+        const t = all.find(x => x._id === tripId);
+        if (!t) return;
+        const userData = JSON.parse(localStorage.getItem("user") || "{}");
+        printDocument("Comprobante de Viaje", `
+            <div class="section"><table>
+                <tr><td class="row-label">Viaje:</td><td><b>${t.codigo}</b></td></tr>
+                <tr><td class="row-label">Fecha:</td><td>${new Date(t.createdAt || t._id?.getTimestamp?.()).toLocaleDateString() || new Date().toLocaleDateString()}</td></tr>
+                <tr><td class="row-label">Estado:</td><td>${t.estado}</td></tr>
+            </table></div>
+            <div class="section"><div class="section-title">Ruta</div><table>
+                <tr><td class="row-label">Origen:</td><td>${t.origen || "—"}</td></tr>
+                <tr><td class="row-label">Destino:</td><td>${t.destino || "—"}</td></tr>
+                <tr><td class="row-label">Carga:</td><td>${t.cargaTotalKg} kg</td></tr>
+                <tr class="total-row"><td>Pago:</td><td>$${t.pago}</td></tr>
+            </table></div>
+            <div class="section"><div class="section-title">Participantes</div><table>
+                <tr><td class="row-label">Agricultor:</td><td>${t.agricultor?.nombre || "—"}</td></tr>
+                <tr><td class="row-label">Transportista:</td><td>${t.transportista?.nombre || "—"}</td></tr>
+            </table></div>
+            ${t.pedidos?.length ? `<div class="section"><div class="section-title">Pedidos</div><table><tr><th>Producto</th><th>Cantidad</th><th>Comercio</th></tr>${t.pedidos.map(p => `<tr><td>${p.producto?.nombre || "—"}</td><td>${p.cantidad} kg</td><td>${p.comercio?.nombre || "—"}</td></tr>`).join("")}</table></div>` : ""}
+            ${t.tracking?.length ? `<div class="section"><div class="section-title">Tracking</div><table><tr><th>Fecha</th><th>Estado</th><th>Ubicación</th></tr>${t.tracking.map(x => `<tr><td>${new Date(x.fecha).toLocaleString()}</td><td>${x.estado}</td><td>${x.ubicacion || "—"}</td></tr>`).join("")}</table></div>` : ""}
+            <div class="firma" style="justify-content:center"><div><div class="line">Transportista</div></div></div>
+        `);
+    });
+}
+
+// ======================
+// CERRAR SESIÓN
+// ======================
 function cerrarSesion() {
     localStorage.clear();
     window.location.href = "../login.html";
 }
 
+// ======================
+// INIT
+// ======================
 navigate("Dashboard");
 </script>
 
