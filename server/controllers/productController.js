@@ -28,7 +28,7 @@ const createProduct = async (req, res) => {
 // Obtener todos los productos
 const getAllProducts = async (req, res) => {
   try {
-    const products = await Product.find()
+    const products = await Product.find({ estado: { $ne: "vendido" } })
       .populate('agricultor', 'nombre email');
 
     res.json(products);
@@ -41,7 +41,7 @@ const getAllProducts = async (req, res) => {
 // Obtener productos del agricultor logueado
 const getMyProducts = async (req, res) => {
   try {
-    const products = await Product.find({ agricultor: req.user.id });
+    const products = await Product.find({ agricultor: req.user.id, estado: { $ne: "vendido" } });
     res.json(products);
 
   } catch (error) {

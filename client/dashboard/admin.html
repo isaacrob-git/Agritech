@@ -130,7 +130,7 @@ async function renderUsuarios() {
             <div class="bg-white rounded-xl shadow overflow-x-auto">
                 <table class="w-full">
                     <thead><tr class="bg-gray-100 text-left">
-                        <th class="p-3">Código</th><th class="p-3">Nombre</th><th class="p-3">Email</th><th class="p-3">Rol</th><th class="p-3">Registro</th>
+                        <th class="p-3">Código</th><th class="p-3">Nombre</th><th class="p-3">Email</th><th class="p-3">Rol</th><th class="p-3">Registro</th><th class="p-3">Acciones</th>
                     </tr></thead>
                     <tbody>
                         ${data.map(u => `
@@ -140,6 +140,11 @@ async function renderUsuarios() {
                                 <td class="p-3">${u.email || "—"}</td>
                                 <td class="p-3"><span class="text-white px-2 py-0.5 rounded text-xs font-bold ${u.rol === "admin" ? "bg-red-600" : u.rol === "agricultor" ? "bg-green-600" : u.rol === "comercio" ? "bg-blue-600" : "bg-purple-600"}">${u.rol}</span></td>
                                 <td class="p-3 text-sm text-gray-500">${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}</td>
+                                <td class="p-3 flex gap-1">
+                                    <button onclick='abrirModalEditar("usuario","${u._id}",${JSON.stringify(u).replace(/'/g,"&#39;")})' class="text-blue-600 text-xs font-bold border border-blue-600 px-2 py-0.5 rounded">Editar</button>
+                                    <button onclick='abrirModalPassword("${u._id}","${u.nombre}")' class="text-yellow-600 text-xs font-bold border border-yellow-600 px-2 py-0.5 rounded">🔑</button>
+                                    <button onclick='abrirModalEliminar("usuario","${u._id}","${u.codigo || u.nombre}")' class="text-red-600 text-xs font-bold border border-red-600 px-2 py-0.5 rounded">Eliminar</button>
+                                </td>
                             </tr>
                         `).join("")}
                     </tbody>
@@ -165,7 +170,7 @@ async function renderProductos() {
             <div class="bg-white rounded-xl shadow overflow-x-auto">
                 <table class="w-full">
                     <thead><tr class="bg-gray-100 text-left">
-                        <th class="p-3">Producto</th><th class="p-3">Agricultor</th><th class="p-3">Cantidad</th><th class="p-3">Precio/kg</th><th class="p-3">Ubicación</th><th class="p-3">Estado</th>
+                        <th class="p-3">Producto</th><th class="p-3">Agricultor</th><th class="p-3">Cantidad</th><th class="p-3">Precio/kg</th><th class="p-3">Ubicación</th><th class="p-3">Estado</th><th class="p-3">Acciones</th>
                     </tr></thead>
                     <tbody>
                         ${data.map(p => `
@@ -176,6 +181,10 @@ async function renderProductos() {
                                 <td class="p-3">$${p.precioKg}</td>
                                 <td class="p-3">${p.ubicacion}</td>
                                 <td class="p-3"><span class="text-white px-2 py-0.5 rounded text-xs font-bold ${p.estado === "disponible" ? "bg-green-600" : "bg-red-600"}">${p.estado}</span></td>
+                                <td class="p-3 flex gap-1">
+                                    <button onclick='abrirModalEditar("producto","${p._id}",${JSON.stringify(p).replace(/'/g,"&#39;")})' class="text-blue-600 text-xs font-bold border border-blue-600 px-2 py-0.5 rounded">Editar</button>
+                                    <button onclick='abrirModalEliminar("producto","${p._id}","${p.nombre}")' class="text-red-600 text-xs font-bold border border-red-600 px-2 py-0.5 rounded">Eliminar</button>
+                                </td>
                             </tr>
                         `).join("")}
                     </tbody>
@@ -206,7 +215,7 @@ async function renderPedidos() {
             <div class="bg-white rounded-xl shadow overflow-x-auto">
                 <table class="w-full">
                     <thead><tr class="bg-gray-100 text-left">
-                        <th class="p-3">ID</th><th class="p-3">Producto</th><th class="p-3">Cantidad</th><th class="p-3">Comercio</th><th class="p-3">Agricultor</th><th class="p-3">Estado</th><th class="p-3"></th>
+                        <th class="p-3">ID</th><th class="p-3">Producto</th><th class="p-3">Cantidad</th><th class="p-3">Comercio</th><th class="p-3">Agricultor</th><th class="p-3">Estado</th><th class="p-3"></th><th class="p-3">Acciones</th>
                     </tr></thead>
                     <tbody>
                         ${data.map(o => `
@@ -218,6 +227,10 @@ async function renderPedidos() {
                                 <td class="p-3">${o.agricultor?.nombre || "—"}</td>
                                 <td class="p-3"><span class="text-white px-2 py-0.5 rounded text-xs font-bold ${badge(o.estado)}">${o.estado}</span></td>
                                 <td class="p-3">${o.estado !== "pendiente" && o.estado !== "rechazado" ? `<button onclick="imprimirFacturaPedido('${o._id}')" class="text-blue-600 text-sm">PDF</button>` : ""}</td>
+                                <td class="p-3 flex gap-1">
+                                    <button onclick='abrirModalEditar("pedido","${o._id}",${JSON.stringify({ estado: o.estado }).replace(/'/g,"&#39;")})' class="text-blue-600 text-xs font-bold border border-blue-600 px-2 py-0.5 rounded">Editar</button>
+                                    <button onclick='abrirModalEliminar("pedido","${o._id}","${o._id.slice(-6)}")' class="text-red-600 text-xs font-bold border border-red-600 px-2 py-0.5 rounded">Eliminar</button>
+                                </td>
                             </tr>
                         `).join("")}
                     </tbody>
@@ -252,7 +265,7 @@ async function renderContratos() {
             <div class="bg-white rounded-xl shadow overflow-x-auto">
                 <table class="w-full">
                     <thead><tr class="bg-gray-100 text-left">
-                        <th class="p-3">Código</th><th class="p-3">Producto</th><th class="p-3">Comercio</th><th class="p-3">Agricultor</th><th class="p-3">Cantidad</th><th class="p-3">Estado</th><th class="p-3"></th>
+                        <th class="p-3">Código</th><th class="p-3">Producto</th><th class="p-3">Comercio</th><th class="p-3">Agricultor</th><th class="p-3">Cantidad</th><th class="p-3">Estado</th><th class="p-3"></th><th class="p-3">Acciones</th>
                     </tr></thead>
                     <tbody>
                         ${data.map(c => `
@@ -266,6 +279,10 @@ async function renderContratos() {
                                 <td class="p-3 flex gap-1">
                                     <button onclick="contratoDetalleId='${c._id}'; renderContratos();" class="text-blue-600 text-sm">Ver</button>
                                     <button onclick="imprimirContratoAdmin('${c._id}')" class="text-blue-600 text-sm">PDF</button>
+                                </td>
+                                <td class="p-3 flex gap-1">
+                                    <button onclick='abrirModalEditar("contrato","${c._id}",${JSON.stringify({ estado: c.estado, precioAcordado: c.precioAcordado }).replace(/'/g,"&#39;")})' class="text-blue-600 text-xs font-bold border border-blue-600 px-2 py-0.5 rounded">Editar</button>
+                                    <button onclick='abrirModalEliminar("contrato","${c._id}","${c.codigo}")' class="text-red-600 text-xs font-bold border border-red-600 px-2 py-0.5 rounded">Eliminar</button>
                                 </td>
                             </tr>
                         `).join("")}
@@ -351,7 +368,7 @@ async function renderTokens() {
             <div class="bg-white rounded-xl shadow overflow-x-auto">
                 <table class="w-full">
                     <thead><tr class="bg-gray-100 text-left">
-                        <th class="p-3">Código</th><th class="p-3">Activo</th><th class="p-3">Cantidad</th><th class="p-3">Propietario</th><th class="p-3">Estado</th><th class="p-3">Financiado</th><th class="p-3">Origen</th>
+                        <th class="p-3">Código</th><th class="p-3">Activo</th><th class="p-3">Cantidad</th><th class="p-3">Propietario</th><th class="p-3">Estado</th><th class="p-3">Financiado</th><th class="p-3">Origen</th><th class="p-3">Acciones</th>
                     </tr></thead>
                     <tbody>
                         ${data.map(t => `
@@ -363,6 +380,10 @@ async function renderTokens() {
                                 <td class="p-3"><span class="text-white px-2 py-0.5 rounded text-xs font-bold ${badgeT(t.estado)}">${t.estado}</span></td>
                                 <td class="p-3">${t.financiado ? "✅ Sí" : "—"}</td>
                                 <td class="p-3 text-sm">${t.producto ? "Producto" : t.contrato ? "Contrato" : "—"}</td>
+                                <td class="p-3 flex gap-1">
+                                    <button onclick='abrirModalEditar("token","${t._id}",${JSON.stringify({ estado: t.estado, nombreActivo: t.nombreActivo, financiado: t.financiado }).replace(/'/g,"&#39;")})' class="text-blue-600 text-xs font-bold border border-blue-600 px-2 py-0.5 rounded">Editar</button>
+                                    <button onclick='abrirModalEliminar("token","${t._id}","${t.codigo}")' class="text-red-600 text-xs font-bold border border-red-600 px-2 py-0.5 rounded">Eliminar</button>
+                                </td>
                             </tr>
                         `).join("")}
                     </tbody>
@@ -393,7 +414,7 @@ async function renderViajes() {
             <div class="bg-white rounded-xl shadow overflow-x-auto">
                 <table class="w-full">
                     <thead><tr class="bg-gray-100 text-left">
-                        <th class="p-3">Código</th><th class="p-3">Ruta</th><th class="p-3">Carga</th><th class="p-3">Pago</th><th class="p-3">Transportista</th><th class="p-3">Agricultor</th><th class="p-3">Estado</th><th class="p-3"></th>
+                        <th class="p-3">Código</th><th class="p-3">Ruta</th><th class="p-3">Carga</th><th class="p-3">Pago</th><th class="p-3">Transportista</th><th class="p-3">Agricultor</th><th class="p-3">Estado</th><th class="p-3"></th><th class="p-3">Acciones</th>
                     </tr></thead>
                     <tbody>
                         ${data.map(t => `
@@ -406,6 +427,10 @@ async function renderViajes() {
                                 <td class="p-3">${t.agricultor?.nombre || "—"}</td>
                                 <td class="p-3"><span class="text-white px-2 py-0.5 rounded text-xs font-bold ${badgeV(t.estado)}">${t.estado}</span></td>
                                 <td class="p-3"><button onclick="imprimirViajeAdmin('${t._id}')" class="text-blue-600 text-sm">PDF</button></td>
+                                <td class="p-3 flex gap-1">
+                                    <button onclick='abrirModalEditar("viaje","${t._id}",${JSON.stringify({ estado: t.estado, pago: t.pago }).replace(/'/g,"&#39;")})' class="text-blue-600 text-xs font-bold border border-blue-600 px-2 py-0.5 rounded">Editar</button>
+                                    <button onclick='abrirModalEliminar("viaje","${t._id}","${t.codigo}")' class="text-red-600 text-xs font-bold border border-red-600 px-2 py-0.5 rounded">Eliminar</button>
+                                </td>
                             </tr>
                         `).join("")}
                     </tbody>
@@ -460,6 +485,8 @@ async function filtrarFin(estado) {
                         <button onclick="rechazarFin('${f._id}')" class="bg-red-600 text-white px-3 py-1 rounded text-sm font-bold">Rechazar</button>
                     ` : ""}
                     <button onclick="imprimirFinanciamientoAdmin('${f._id}')" class="text-blue-600 text-sm font-bold">PDF</button>
+                    <button onclick='abrirModalEditar("financiamiento","${f._id}",${JSON.stringify({ estado: f.estado, montoSolicitado: f.montoSolicitado, plazoDias: f.plazoDias }).replace(/'/g,"&#39;")})' class="text-blue-600 text-xs font-bold border border-blue-600 px-2 py-0.5 rounded">Editar</button>
+                    <button onclick='abrirModalEliminar("financiamiento","${f._id}","${f._id.slice(-6)}")' class="text-red-600 text-xs font-bold border border-red-600 px-2 py-0.5 rounded">Eliminar</button>
                 </div>
                 ${f.historial?.length ? `<details class="mt-2"><summary class="text-sm text-gray-500 cursor-pointer">Historial</summary>${f.historial.map(h => `<p class="text-xs text-gray-400 ml-2">${h.accion} — ${new Date(h.fecha).toLocaleString()}</p>`).join("")}</details>` : ""}
             </div>
@@ -483,6 +510,191 @@ async function rechazarFin(id) {
     if (!res.ok) { const d = await res.json(); alert(d.message); return; }
     alert("Financiamiento rechazado");
     filtrarFin();
+}
+
+// ======================
+// EDITAR (MODAL GENÉRICO)
+// ======================
+let editando = { tipo: null, id: null };
+
+function abrirModalEditar(tipo, id, data) {
+    editando = { tipo, id };
+    const m = document.getElementById("editModal");
+    document.getElementById("editTitulo").innerText = `Editar ${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`;
+    const body = document.getElementById("editBody");
+    let html = "";
+
+    const makeField = (label, name, value, type = "text", isSelect = false, opts = null) => {
+        if (isSelect) {
+            return `<div class="mb-3"><label class="text-sm font-semibold block">${label}</label>
+                <select id="ef_${name}" class="w-full border p-2 rounded">${opts.map(o => `<option value="${o}" ${value === o ? "selected" : ""}>${o}</option>`).join("")}</select></div>`;
+        }
+        return `<div class="mb-3"><label class="text-sm font-semibold block">${label}</label>
+            <input type="${type}" id="ef_${name}" value="${value ?? ""}" class="w-full border p-2 rounded"></div>`;
+    };
+
+    switch (tipo) {
+        case "usuario":
+            html += makeField("Nombre", "nombre", data.nombre);
+            html += makeField("Email", "email", data.email, "email");
+            html += makeField("Rol", "rol", data.rol, "text", true, ["agricultor", "comercio", "transportista", "admin"]);
+            break;
+        case "producto":
+            html += makeField("Nombre", "nombre", data.nombre);
+            html += makeField("Precio/kg", "precioKg", data.precioKg, "number");
+            html += makeField("Estado", "estado", data.estado, "text", true, ["disponible", "vendido"]);
+            break;
+        case "pedido":
+            html += makeField("Estado", "estado", data.estado, "text", true, ["pendiente", "aceptado", "rechazado", "en_transporte", "entregado"]);
+            break;
+        case "contrato":
+            html += makeField("Estado", "estado", data.estado, "text", true, ["pendiente", "activo", "en_produccion", "en_transporte", "entregado", "finalizado", "rechazado", "cancelado"]);
+            html += makeField("Precio acordado", "precioAcordado", data.precioAcordado, "number");
+            break;
+        case "token":
+            html += makeField("Estado", "estado", data.estado, "text", true, ["Disponible", "Vendido", "Transferido", "Dividido", "Cancelado"]);
+            html += makeField("Nombre activo", "nombreActivo", data.nombreActivo);
+            html += `<div class="mb-3 flex items-center gap-2"><label class="text-sm font-semibold">Financiado</label>
+                <input type="checkbox" id="ef_financiado" ${data.financiado ? "checked" : ""}></div>`;
+            break;
+        case "viaje":
+            html += makeField("Estado", "estado", data.estado, "text", true, ["pendiente", "asignado", "carga_recogida", "en_camino", "llegó_a_destino", "entregado", "cancelado"]);
+            html += makeField("Pago ($)", "pago", data.pago, "number");
+            break;
+        case "financiamiento":
+            html += makeField("Estado", "estado", data.estado, "text", true, ["pendiente", "aprobado", "rechazado", "pagado"]);
+            html += makeField("Monto solicitado", "montoSolicitado", data.montoSolicitado, "number");
+            html += makeField("Plazo (días)", "plazoDias", data.plazoDias, "number");
+            break;
+    }
+    body.innerHTML = html;
+    m.classList.remove("hidden");
+}
+
+function cerrarModalEditar() {
+    document.getElementById("editModal").classList.add("hidden");
+    editando = { tipo: null, id: null };
+}
+
+async function confirmarEditar() {
+    const { tipo, id } = editando;
+    if (!tipo || !id) return;
+
+    const body = {};
+    const fields = document.querySelectorAll("#editBody [id^='ef_']");
+    fields.forEach(el => {
+        const name = el.id.replace("ef_", "");
+        if (el.type === "checkbox") {
+            body[name] = el.checked;
+        } else if (el.type === "number") {
+            body[name] = parseFloat(el.value);
+        } else {
+            body[name] = el.value;
+        }
+    });
+
+    const res = await fetch(`${API_ADMIN}/${tipo}s/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) { alert(data.message); return; }
+    alert("Actualizado correctamente");
+    cerrarModalEditar();
+    navigate(document.getElementById("title").innerText);
+}
+
+// ======================
+// ELIMINAR (MODAL CONFIRMACIÓN)
+// ======================
+let eliminando = { tipo: null, id: null };
+
+function abrirModalEliminar(tipo, id, nombre) {
+    eliminando = { tipo, id };
+    const m = document.getElementById("deleteModal");
+    document.getElementById("deleteMsg").innerHTML = `¿Eliminar <b>${nombre}</b>?`;
+    document.getElementById("deleteWarning").classList.add("hidden");
+    document.getElementById("deleteCheck").checked = false;
+    document.getElementById("deleteBtn").disabled = true;
+    m.classList.remove("hidden");
+}
+
+function cerrarModalEliminar() {
+    document.getElementById("deleteModal").classList.add("hidden");
+    eliminando = { tipo: null, id: null };
+}
+
+function toggleDeleteBtn() {
+    document.getElementById("deleteBtn").disabled = !document.getElementById("deleteCheck").checked;
+}
+
+async function confirmarEliminar() {
+    const { tipo, id } = eliminando;
+    if (!tipo || !id) return;
+
+    const res = await fetch(`${API_ADMIN}/${tipo}s/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: "Bearer " + token }
+    });
+    const data = await res.json();
+    if (!res.ok) {
+        alert(data.message);
+        if (data.pedidosActivos || data.tokensActivos) {
+            document.getElementById("deleteWarning").innerHTML = `<p class="text-red-600 text-sm">⚠️ Tiene ${data.pedidosActivos || 0} pedido(s) activo(s) y ${data.tokensActivos || 0} token(s) activo(s). No se puede eliminar.</p>`;
+            document.getElementById("deleteWarning").classList.remove("hidden");
+        }
+        return;
+    }
+
+    let msg = data.message;
+    if (data.dependencias) {
+        const dep = data.dependencias;
+        const partes = [];
+        if (dep.productos) partes.push(`${dep.productos} producto(s)`);
+        if (dep.pedidos) partes.push(`${dep.pedidos} pedido(s)`);
+        if (dep.contratos) partes.push(`${dep.contratos} contrato(s)`);
+        if (dep.tokens) partes.push(`${dep.tokens} token(s)`);
+        if (partes.length) msg += ` — Dependencias activas: ${partes.join(", ")}`;
+    }
+    alert(msg);
+    cerrarModalEliminar();
+    navigate(document.getElementById("title").innerText);
+}
+
+// ======================
+// CAMBIAR CONTRASEÑA
+// ======================
+let passUserId = null;
+
+function abrirModalPassword(id, nombre) {
+    passUserId = id;
+    document.getElementById("passTitulo").innerText = `Cambiar contraseña — ${nombre}`;
+    document.getElementById("passNew").value = "";
+    document.getElementById("passConfirm").value = "";
+    document.getElementById("passwordModal").classList.remove("hidden");
+}
+
+function cerrarModalPassword() {
+    document.getElementById("passwordModal").classList.add("hidden");
+    passUserId = null;
+}
+
+async function confirmarPassword() {
+    const pw = document.getElementById("passNew").value;
+    const pw2 = document.getElementById("passConfirm").value;
+    if (!pw || pw.length < 4) { alert("La contraseña debe tener al menos 4 caracteres"); return; }
+    if (pw !== pw2) { alert("Las contraseñas no coinciden"); return; }
+
+    const res = await fetch(`${API_ADMIN}/usuarios/${passUserId}/password`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ password: pw })
+    });
+    const data = await res.json();
+    if (!res.ok) { alert(data.message); return; }
+    alert("Contraseña actualizada");
+    cerrarModalPassword();
 }
 
 // ======================
@@ -721,7 +933,6 @@ navigate("Dashboard");
 <div id="registroModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
     <div class="bg-white p-6 rounded-xl w-full max-w-sm">
         <h3 class="font-bold text-lg mb-4">Registrar nuevo usuario</h3>
-
         <div class="space-y-3">
             <div>
                 <label class="text-sm font-semibold">Nombre</label>
@@ -745,10 +956,59 @@ navigate("Dashboard");
                 </select>
             </div>
         </div>
-
         <div class="flex justify-end gap-2 mt-6">
             <button onclick="cerrarModalRegistro()" class="bg-gray-300 px-4 py-2 rounded">Cancelar</button>
             <button onclick="confirmarRegistro()" class="bg-green-600 text-white px-4 py-2 rounded font-bold">Crear usuario</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL EDITAR -->
+<div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+    <div class="bg-white p-6 rounded-xl w-full max-w-sm">
+        <h3 id="editTitulo" class="font-bold text-lg mb-4">Editar</h3>
+        <div id="editBody" class="space-y-3"></div>
+        <div class="flex justify-end gap-2 mt-6">
+            <button onclick="cerrarModalEditar()" class="bg-gray-300 px-4 py-2 rounded">Cancelar</button>
+            <button onclick="confirmarEditar()" class="bg-blue-600 text-white px-4 py-2 rounded font-bold">Guardar cambios</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL ELIMINAR -->
+<div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+    <div class="bg-white p-6 rounded-xl w-full max-w-sm">
+        <h3 class="font-bold text-lg mb-4 text-red-600">Confirmar eliminación</h3>
+        <p id="deleteMsg" class="mb-3"></p>
+        <div id="deleteWarning" class="mb-3 hidden"></div>
+        <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" id="deleteCheck" onchange="toggleDeleteBtn()">
+            Entiendo que esto no se puede deshacer
+        </label>
+        <div class="flex justify-end gap-2 mt-6">
+            <button onclick="cerrarModalEliminar()" class="bg-gray-300 px-4 py-2 rounded">Cancelar</button>
+            <button id="deleteBtn" onclick="confirmarEliminar()" class="bg-red-600 text-white px-4 py-2 rounded font-bold disabled:opacity-50" disabled>Eliminar</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL CAMBIAR CONTRASEÑA -->
+<div id="passwordModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+    <div class="bg-white p-6 rounded-xl w-full max-w-sm">
+        <h3 id="passTitulo" class="font-bold text-lg mb-4">Cambiar contraseña</h3>
+        <div class="space-y-3">
+            <div>
+                <label class="text-sm font-semibold">Nueva contraseña</label>
+                <input type="password" id="passNew" class="w-full border p-2 rounded" placeholder="Mínimo 4 caracteres">
+            </div>
+            <div>
+                <label class="text-sm font-semibold">Confirmar contraseña</label>
+                <input type="password" id="passConfirm" class="w-full border p-2 rounded" placeholder="Repite la contraseña">
+            </div>
+        </div>
+        <div class="flex justify-end gap-2 mt-6">
+            <button onclick="cerrarModalPassword()" class="bg-gray-300 px-4 py-2 rounded">Cancelar</button>
+            <button onclick="confirmarPassword()" class="bg-yellow-600 text-white px-4 py-2 rounded font-bold">Cambiar contraseña</button>
         </div>
     </div>
 </div>

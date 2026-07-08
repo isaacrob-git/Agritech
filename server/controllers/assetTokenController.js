@@ -41,7 +41,7 @@ const generateToken = async (req, res) => {
 
 const getMyTokens = async (req, res) => {
   try {
-    const tokens = await AssetToken.find({ propietario: req.user.id })
+    const tokens = await AssetToken.find({ propietario: req.user.id, estado: { $ne: "Cancelado" } })
       .populate("producto")
       .populate("contrato")
       .populate("propietario", "nombre email");
