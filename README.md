@@ -1,8 +1,14 @@
-# CosechaDirecta
+# AgriTech: CosechaDirecta
 
 **Plataforma B2B de Comercio Agrícola**
 
-Conecta productores locales con comercios, hoteles y restaurantes en Venezuela. Suministro al por mayor sin intermediarios.
+Conexión Directa del Campo al Comercio
+
+- Marketplace B2B donde agricultores de las regiones productoras venden directamente a comercios en las capitales.
+- Tokenizacion de activos del ramo agropecuario 
+- Logística colaborativa terrestre (aprovechando flotas de fletes subutilizadas).
+- Financiamiento de insumos agrícolas basados en contratos de compra futuros de los comercios.
+
 
 ---
 
@@ -29,7 +35,7 @@ Conecta productores locales con comercios, hoteles y restaurantes en Venezuela. 
 
 ## Features
 
-### 👨‍🌾 Agricultor
+### Agricultor
 - Publicar productos agrícolas con precio, cantidad y ubicación
 - Recibir y gestionar pedidos de comercios (aceptar/rechazar)
 - Tokenizar cosechas como activos digitales para respaldo financiero
@@ -39,7 +45,7 @@ Conecta productores locales con comercios, hoteles y restaurantes en Venezuela. 
 - Tracking de pedidos en tiempo real
 - Imprimir PDF: Facturas, Contratos, Comprobantes, Órdenes de transporte
 
-### 🏪 Comercio
+### Comercio
 - Explorar catálogo de productos disponibles
 - Realizar pedidos al por mayor
 - Proponer contratos a futuro a agricultores (precio fijo, volumen acordado)
@@ -47,14 +53,14 @@ Conecta productores locales con comercios, hoteles y restaurantes en Venezuela. 
 - Historial de compras y contratos
 - Imprimir PDF: Facturas y Contratos
 
-### 🚚 Transportista
+### Transportista
 - Ver viajes disponibles publicados por agricultores
 - Aceptar viajes y asignarse como transportista
 - Actualizar tracking del viaje (7 estados + ubicación)
 - Historial de viajes completados
 - Imprimir PDF: Comprobante de viaje
 
-### 🔐 Administrador
+### Administrador
 - CRUD completo de todas las entidades (usuarios, productos, pedidos, contratos, tokens, viajes, financiamientos)
 - Cambio de contraseña de cualquier usuario
 - Soft/hard delete con verificación de dependencias
@@ -71,14 +77,14 @@ Cliente (HTML + JS + Tailwind)
        ▼
 API REST (Express 5)
        │
-       ├── /api/auth       → AuthController
-       ├── /api/products   → ProductController
-       ├── /api/orders     → OrderController
-       ├── /api/contracts  → ContractController
-       ├── /api/tokens     → AssetTokenController
+       ├── /api/auth           → AuthController
+       ├── /api/products       → ProductController
+       ├── /api/orders         → OrderController
+       ├── /api/contracts      → ContractController
+       ├── /api/tokens         → AssetTokenController
        ├── /api/financiamiento → FinancingController
-       ├── /api/trips      → TripController
-       └── /api/admin      → AdminController
+       ├── /api/trips          → TripController
+       └── /api/admin          → AdminController
        │
        ▼
 MongoDB (Mongoose ODM)
@@ -309,10 +315,10 @@ CosechaDirecta/
 
 | Rol | URL | Contenido |
 |-----|-----|-----------|
-| 👨‍🌾 Agricultor | `client/dashboard/agricultor.html` | Dashboard, Mis productos, Pedidos, Tokens, Financiamientos, Contratos, Viajes, Perfil |
-| 🏪 Comercio | `client/dashboard/comercio.html` | Dashboard, Marketplace, Mis pedidos, Contratos, Perfil |
-| 🚚 Transportista | `client/dashboard/transportista.html` | Dashboard, Viajes disponibles, Mis viajes, Historial, Perfil |
-| 🔐 Admin | `client/dashboard/admin.html` | Dashboard, Usuarios, Productos, Pedidos, Contratos, Tokens, Viajes, Financiamientos |
+| Agricultor | `client/dashboard/agricultor.html` | Dashboard, Mis productos, Pedidos, Tokens, Financiamientos, Contratos, Viajes, Perfil |
+| Comercio | `client/dashboard/comercio.html` | Dashboard, Marketplace, Mis pedidos, Contratos, Perfil |
+| Transportista | `client/dashboard/transportista.html` | Dashboard, Viajes disponibles, Mis viajes, Historial, Perfil |
+| Admin | `client/dashboard/admin.html` | Dashboard, Usuarios, Productos, Pedidos, Contratos, Tokens, Viajes, Financiamientos |
 
 **Flujo de navegación:**
 1. Usuario inicia sesión en `login.html`
@@ -357,13 +363,18 @@ Alternativa: Contratos a futuro
 
 - [ ] Pasarela de pagos integrada
 - [ ] Notificaciones en tiempo real (WebSockets)
-- [ ] Mapa interactivo para tracking de viajes
 - [ ] Módulo de calificaciones y reputación
 - [ ] App móvil (React Native)
 - [ ] Dashboard con gráficos (Chart.js)
 
 ---
 
-## Licencia
+## Autores
 
-MIT © 2026 AgriTech C.A.
+Isaac Lara C.I: 28.408.847
+Edgarimar Malaspina C.I: 32.249.664
+Mariangela Pinto C.I: 23.952.199
+
+Sección "2"
+
+Proyecto realizado con fines de aprendizaje y práctica en programación web para la asignatura Traductores e Interpretes dictada por el Prof. Cesar Montilla
