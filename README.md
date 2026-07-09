@@ -29,7 +29,6 @@ Conexión Directa del Campo al Comercio
 | **Frontend** | HTML5, Tailwind CSS (CDN), Vanilla JavaScript |
 | **Fonts** | Inter (Google Fonts) |
 | **PDF** | `window.print()` via `window.open()` |
-| **Files** | Multer |
 
 ---
 
