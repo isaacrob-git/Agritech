@@ -576,10 +576,16 @@ async function renderTokens() {
     const c = document.getElementById("content");
 
     try {
-        const res = await fetch(API_TOKENS + "/mis-tokens", {
-            headers: { Authorization: "Bearer " + token }
-        });
-        const data = await res.json();
+        const [tokensRes, finsRes] = await Promise.all([
+            fetch(API_TOKENS + "/mis-tokens", {
+                headers: { Authorization: "Bearer " + token }
+            }),
+            fetch(API_FINANCING, {
+                headers: { Authorization: "Bearer " + token }
+            })
+        ]);
+        const data = await tokensRes.json();
+        const fins = await finsRes.json();
 
         c.innerHTML = `
             <div class="mb-8 border-b border-gray-100 pb-6">
@@ -593,7 +599,41 @@ async function renderTokens() {
             return;
         }
 
-        c.innerHTML += `<div class="grid grid-cols-1 md:grid-cols-2 gap-6">` + data.map(t => `
+        c.innerHTML += `<div class="grid grid-cols-1 md:grid-cols-2 gap-6">` + data.map(t => {
+            const fin = fins.find(f => (f.token?._id || f.token) === t._id);
+            let accionHtml;
+
+            if (!fin) {
+                accionHtml = t.estado === "Disponible" ? `
+                    <button onclick="abrirFinancing('${t._id}', '${t.codigo}', ${t.cantidad}, ${t.producto?.precioKg || t.contrato?.precioAcordado || 0})"
+                        class="w-full bg-brand_lime text-navy_dark px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-brand_lime_dark transition-all shadow-md">
+                        Solicitar Financiamiento
+                    </button>
+                ` : `
+                    <p class="bg-gray-50 text-gray-400 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-center">No Disponible</p>
+                `;
+            } else if (fin.estado === "pendiente") {
+                accionHtml = `
+                    <p class="bg-yellow-50 text-yellow-600 border border-yellow-200 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-center">En espera</p>
+                `;
+            } else if (fin.estado === "aprobado" || fin.estado === "pagado") {
+                accionHtml = `
+                    <p class="bg-blue-50 text-blue-600 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-center">En Garantía</p>
+                `;
+            } else if (fin.estado === "rechazado" && t.estado === "Disponible") {
+                accionHtml = `
+                    <button onclick="abrirFinancing('${t._id}', '${t.codigo}', ${t.cantidad}, ${t.producto?.precioKg || t.contrato?.precioAcordado || 0})"
+                        class="w-full bg-brand_lime text-navy_dark px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-brand_lime_dark transition-all shadow-md">
+                        Solicitar Financiamiento
+                    </button>
+                `;
+            } else {
+                accionHtml = `
+                    <p class="bg-gray-50 text-gray-400 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-center">No Disponible</p>
+                `;
+            }
+
+            return `
             <div class="bg-white border border-gray-100 p-6 rounded-[24px] custom-shadow flex flex-col">
                 <div class="flex justify-between items-start mb-4">
                     <p class="font-black text-xl text-navy_dark">${t.codigo}</p>
@@ -608,19 +648,10 @@ async function renderTokens() {
                 </div>
                 
                 <div class="mt-auto pt-4 border-t border-gray-100">
-                    ${t.estado === "Disponible" && !t.financiado ? `
-                        <button onclick="abrirFinancing('${t._id}', '${t.codigo}', ${t.cantidad}, ${t.producto?.precioKg || t.contrato?.precioAcordado || 0})"
-                            class="w-full bg-brand_lime text-navy_dark px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-brand_lime_dark transition-all shadow-md">
-                            Solicitar Financiamiento
-                        </button>
-                    ` : t.financiado ? `
-                        <p class="bg-blue-50 text-blue-600 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-center">En Garantía</p>
-                    ` : `
-                        <p class="bg-gray-50 text-gray-400 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-center">No Disponible</p>
-                    `}
+                    ${accionHtml}
                 </div>
-            </div>
-        `).join("") + `</div>`;
+            </div>`;
+        }).join("") + `</div>`;
     } catch (e) {
         c.innerHTML = "<p class='text-danger font-bold bg-red-50 p-4 rounded-2xl'>Error al cargar tokens</p>";
     }
@@ -711,7 +742,7 @@ async function renderFinanciamientos() {
                 </div>
                 
                 <div class="w-full md:w-auto flex flex-col gap-2">
-                    <button onclick="imprimirComprobante('${f._id}')" class="w-full bg-gray-100 text-gray-600 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-200 transition-all text-center">🖨️ Comprobante</button>
+                    <button onclick="imprimirComprobante('${f._id}')" class="w-full bg-gray-100 text-gray-600 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-200 transition-all text-center">Comprobante</button>
                 </div>
             </div>
         `).join("") + `</div>`;
