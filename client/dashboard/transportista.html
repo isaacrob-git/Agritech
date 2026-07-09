@@ -208,8 +208,8 @@ async function renderDashboard() {
                 ${misViajes.filter(t => t.estado === "asignado" || t.estado === "carga_recogida" || t.estado === "en_camino" || t.estado === "llegó_a_destino").map(t => `
                     <div class="bg-white border border-gray-100 p-5 rounded-[20px] flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:border-brand_lime transition-all">
                         <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center font-black text-xs text-gray-400">
-                                🚚
+                            <div class="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center font-black text-xs ">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6"><path d="M3.375 4.5C2.339 4.5 1.5 5.34 1.5 6.375V13.5h12V6.375c0-1.036-.84-1.875-1.875-1.875h-8.25ZM13.5 15h-12v2.625c0 1.035.84 1.875 1.875 1.875h.375a3 3 0 1 1 6 0h3a.75.75 0 0 0 .75-.75V15Z" /><path d="M8.25 19.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0ZM15.75 6.75a.75.75 0 0 0-.75.75v11.25c0 .087.015.17.042.248a3 3 0 0 1 5.958.464c.853-.175 1.522-.935 1.464-1.883a18.659 18.659 0 0 0-3.732-10.104 1.837 1.837 0 0 0-1.47-.725H15.75Z" /><path d="M19.5 19.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0Z" /></svg>
                             </div>
                             <div>
                                 <p class="font-bold text-sm text-navy_dark mb-1"><span class="text-brand_lime bg-navy_dark px-2 py-0.5 rounded-md text-[10px] mr-2">${t.codigo}</span> ${t.origen} <span class="text-gray-300 mx-1">&rarr;</span> ${t.destino}</p>
@@ -411,7 +411,7 @@ async function renderDetalleViaje(id) {
                         </div>
                     </div>
 
-                    <h3 class="text-lg font-black mb-4 uppercase tracking-widest text-navy_dark">📦 Pedidos del viaje</h3>
+                    <h3 class="text-lg font-black mb-4 uppercase tracking-widest text-navy_dark">Pedidos del viaje</h3>
                     <div class="space-y-3">
                         ${(t.pedidos || []).map(p => `
                             <div class="bg-white border border-gray-100 p-4 rounded-2xl flex justify-between items-center custom-shadow">
@@ -428,7 +428,7 @@ async function renderDetalleViaje(id) {
                 </div>
 
                 <div>
-                    <h3 class="text-lg font-black mb-4 uppercase tracking-widest text-navy_dark">📍 Seguimiento</h3>
+                    <h3 class="text-lg font-black mb-4 uppercase tracking-widest text-navy_dark">Seguimiento</h3>
                     <div class="bg-navy_dark text-white p-8 rounded-[24px] mb-6">
                         ${renderTimeline(t)}
                     </div>
@@ -436,12 +436,12 @@ async function renderDetalleViaje(id) {
                     <div class="flex flex-col sm:flex-row gap-3">
                         <button onclick="imprimirComprobanteViaje('${t._id}')"
                             class="flex-1 bg-white border-2 border-gray-100 text-navy_dark px-4 py-4 rounded-2xl font-black hover:border-navy_dark transition-all uppercase tracking-widest text-xs flex justify-center items-center gap-2">
-                            🖨️ Comprobante PDF
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6"><path fill-rule="evenodd" d="M7.875 1.5C6.839 1.5 6 2.34 6 3.375v2.99c-.426.053-.851.11-1.274.174-1.454.218-2.476 1.483-2.476 2.917v6.294a3 3 0 0 0 3 3h.27l-.155 1.705A1.875 1.875 0 0 0 7.232 22.5h9.536a1.875 1.875 0 0 0 1.867-2.045l-.155-1.705h.27a3 3 0 0 0 3-3V9.456c0-1.434-1.022-2.7-2.476-2.917A48.716 48.716 0 0 0 18 6.366V3.375c0-1.036-.84-1.875-1.875-1.875h-8.25ZM16.5 6.205v-2.83A.375.375 0 0 0 16.125 3h-8.25a.375.375 0 0 0-.375.375v2.83a49.353 49.353 0 0 1 9 0Zm-.217 8.265c.178.018.317.16.333.337l.526 5.784a.375.375 0 0 1-.374.409H7.232a.375.375 0 0 1-.374-.409l.526-5.784a.373.373 0 0 1 .333-.337 41.741 41.741 0 0 1 8.566 0Zm.967-3.97a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 .75.75v.008a.75.75 0 0 1-.75.75H18a.75.75 0 0 1-.75-.75V10.5ZM15 9.75a.75.75 0 0 0-.75.75v.008c0 .414.336.75.75.75h.008a.75.75 0 0 0 .75-.75V10.5a.75.75 0 0 0-.75-.75H15Z" clip-rule="evenodd" /></svg> Comprobante PDF
                         </button>
                         ${["asignado","carga_recogida","en_camino","llegó_a_destino"].includes(t.estado) ? `
                             <button onclick="mostrarModalTracking('${t._id}')"
                                 class="flex-[1.5] bg-brand_lime text-navy_dark px-4 py-4 rounded-2xl font-black shadow-lg hover:bg-brand_lime_dark transition-all uppercase tracking-widest text-xs flex justify-center items-center gap-2">
-                                ⚡ Actualizar Estado
+                                Actualizar Estado
                             </button>
                         ` : ""}
                     </div>

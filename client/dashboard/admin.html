@@ -344,7 +344,7 @@ async function renderUsuarios() {
                                 <td class="px-6 py-4 text-xs font-bold text-gray-400">${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}</td>
                                 <td class="px-6 py-4 text-right space-x-2">
                                     <button onclick='abrirModalEditar("usuario","${u._id}",${JSON.stringify({ nombre: u.nombre, email: u.email, rol: u.rol }).replace(/'/g,"&#39;")})' class="bg-gray-100 text-navy_dark px-3 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-gray-200 transition-all">Editar</button>
-                                    <button onclick='abrirModalPassword("${u._id}","${u.nombre}")' class="bg-amber-50 text-amber-600 px-3 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-amber-100 transition-all">🔑</button>
+                                    <button onclick='abrirModalPassword("${u._id}","${u.nombre}")' class="bg-amber-50  px-3 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-amber-100 transition-all">🔑</button>
                                     <button onclick='abrirModalEliminar("usuario","${u._id}","${u.codigo || u.nombre}")' class="bg-red-50 text-red-500 px-3 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-red-100 transition-all">Eliminar</button>
                                 </td>
                             </tr>
