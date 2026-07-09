@@ -377,6 +377,10 @@ Edgarimar Malaspina C.I: 32.249.664
 
 Mariangela Pinto C.I: 23.952.199
 
+Jesús Arnaudes C.I: 31.345.987
+
+Moises Requena C.I: 30.658.470
+
 Sección "2"
 
 Proyecto realizado con fines de aprendizaje y práctica en programación web para la asignatura Traductores e Interpretes dictada por el Prof. Cesar Montilla
