@@ -37,19 +37,19 @@ formulario.addEventListener("submit", async (e) => {
         switch (data.user.rol) {
 
             case "agricultor":
-                window.location.href = "dashboard/agricultor.html";
+                window.location.href = "main-user.html";
                 break;
 
             case "comercio":
-                window.location.href = "dashboard/comercio.html";
+                window.location.href = "main-user.html";
                 break;
 
             case "transportista":
-                window.location.href = "dashboard/transportista.html";
+                window.location.href = "main-user.html";
                 break;
 
             case "admin":
-                window.location.href = "dashboard/admin.html";
+                window.location.href = "main-user.html";
                 break;
 
             default:
