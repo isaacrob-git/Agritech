@@ -108,6 +108,8 @@ const API_TRIPS = "http://localhost:3000/api/trips";
 const user = JSON.parse(localStorage.getItem("user") || "{}");
 const token = localStorage.getItem("token");
 
+if (!token) window.location.href = "../login.html";
+
 // ======================
 // NAVEGACIÓN Y ESTILOS ACTIVOS
 // ======================

@@ -43,6 +43,12 @@
 </head>
 <body class="min-h-screen flex items-center justify-center p-6">
 
+<script>
+    if (localStorage.getItem("token")) {
+        window.location.href = "main-user.html";
+    }
+</script>
+
 <div class="w-full max-w-[450px]">
     <a href="index.html" class="text-white/50 hover:text-brand_lime transition mb-8 inline-block flex items-center gap-2 text-sm">
         Volver a la página principal

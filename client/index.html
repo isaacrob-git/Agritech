@@ -292,6 +292,10 @@
 </footer>
 
 <script>
+    if (localStorage.getItem("token")) {
+        window.location.href = "main-user.html";
+    }
+
     const nav = document.getElementById('mainNav');
     const navTitle = document.getElementById('navTitle');
     const btnLogin = document.getElementById('btnLogin');

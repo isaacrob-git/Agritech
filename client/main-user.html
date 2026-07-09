@@ -109,7 +109,7 @@
                     </div>
                     <div class="p-2">
                         
-                        <a href="dashboard" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded-2xl transition text-sm font-bold">
+                        <a href="#" onclick="irAlDashboard(); return false;" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded-2xl transition text-sm font-bold">
                     <span class="text-lg"></span> Dashboard
                 </a>
 
@@ -131,7 +131,7 @@
         <h1 class="text-[40px] md:text-[56px] font-extrabold mb-6 leading-tight tracking-tight">El motor agrícola de tu negocio, directo del campo</h1>
         <p class="text-[18px] md:text-[20px] text-gray-300 mb-10 leading-relaxed max-w-2xl mx-auto">Conectamos productores locales con comercios, hoteles y restaurantes en Venezuela. Suministro al por mayor sin intermediarios.</p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="dashboard" class="bg-brand_lime text-navy_dark px-10 py-4 rounded-full font-bold btn-pill text-lg">Acceder al Dashboard</a>
+            <a href="#" onclick="irAlDashboard(); return false;" class="bg-brand_lime text-navy_dark px-10 py-4 rounded-full font-bold btn-pill text-lg">Acceder al Dashboard</a>
             <a href="#servicios" class="border-2 border-brand_lime text-brand_lime px-10 py-4 rounded-full font-bold hover:bg-brand_lime/10 transition text-lg">Explorar Beneficios</a>
         </div>
     </div>
@@ -307,25 +307,61 @@
     const userBtnShell = document.getElementById('userBtnShell');
     const userMenu = document.getElementById('userMenu');
 
-    // Cargar datos de usuario
-    function loadUserData() {
-        const name = localStorage.getItem('userName') || 'Usuario';
-        const email = localStorage.getItem('userEmail') || 'usuario@correo.com';
-        document.getElementById('userNameNav').innerText = name.split(' ')[0];
-        document.getElementById('profileName').innerText = name;
-        document.getElementById('profileEmail').innerText = email;
-        document.getElementById('userAvatar').innerText = name.charAt(0).toUpperCase();
+    // ========================
+    // AUTH — verificar token en localStorage
+    // ========================
+    function checkAuth() {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = 'index.html';
+        }
     }
 
+    // ========================
+    // CARGAR DATOS DEL USUARIO DESDE LOCALSTORAGE
+    // ========================
+    function loadUserNav() {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user) return;
+        document.getElementById('userNameNav').innerText = user.nombre || 'Usuario';
+        document.getElementById('profileName').innerText = user.nombre || 'Usuario';
+        document.getElementById('profileEmail').innerText = user.email || '';
+        const initials = (user.nombre || 'U').split(' ').map(w => w[0]).join('').substring(0, 2);
+        document.getElementById('userAvatar').innerText = initials;
+    }
+
+    // ========================
+    // IR AL DASHBOARD SEGÚN ROL
+    // ========================
+    function irAlDashboard() {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const dashboards = {
+            agricultor: 'dashboard/agricultor.html',
+            comercio: 'dashboard/comercio.html',
+            transportista: 'dashboard/transportista.html',
+            admin: 'dashboard/admin.html'
+        };
+        const url = dashboards[user.rol];
+        if (url) window.location.href = url;
+        else alert('Rol no válido');
+    }
+
+    // ========================
+    // MENÚ DE USUARIO
+    // ========================
     function toggleUserMenu() {
         userMenu.classList.toggle('hidden');
     }
 
     function logout() {
-        localStorage.clear();
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
         window.location.href = 'login.html';
     }
 
+    // ========================
+    // SCROLL — cambiar estilo del nav
+    // ========================
     window.addEventListener('scroll', () => {
         const isScrolling = window.scrollY > 50;
         nav.classList.toggle('bg-white', isScrolling);
@@ -338,113 +374,19 @@
         });
     });
 
-    // Cerrar menú al hacer clic fuera
+    // ========================
+    // CERRAR MENÚ AL CLIC FUERA
+    // ========================
     window.addEventListener('click', (e) => {
         if (!userBtnShell.contains(e.target) && !userMenu.contains(e.target)) {
             userMenu.classList.add('hidden');
         }
     });
 
-    loadUserData();
-
-    function toggleUserMenu(){
-    const menu = document.getElementById('userMenu');
-    menu.classList.toggle('hidden');
-}
-
-// Cerrar menú al hacer click fuera
-document.addEventListener('click', (e)=>{
-    const menu = document.getElementById('userMenu');
-    const avatar = document.getElementById('userAvatar');
-    if(!menu || !avatar) return;
-    if(!menu.contains(e.target) && !avatar.parentElement.contains(e.target)){
-        menu.classList.add('hidden');
-    }
-});
-
-// Cargar datos del usuario
-function loadUserNav(){
-    const user = JSON.parse(localStorage.getItem('user'));
-    if(!user) return;
-
-    document.getElementById('userNameNav').innerText = user.nombre;
-    document.getElementById('profileName').innerText = user.nombre;
-    document.getElementById('profileEmail').innerText = user.email;
-
-    // Avatar con iniciales
-    const initials = user.nombre.split(' ').map(w=>w[0]).join('').substring(0,2);
-    document.getElementById('userAvatar').innerText = initials;
-}
-
-function logout(){
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.href = 'login.html';
-}
-
-loadUserNav();
-
-// Supongamos que tu token contiene info del usuario o la recuperas de tu API
-    const user = JSON.parse(localStorage.getItem('user')) || {}; // { name, email, role }
-
-    // Mostrar botón solo si es admin
-    if(user.role === 'admin') {
-        document.getElementById('adminInventoryBtn').classList.remove('hidden');
-    }
-
-    // Función toggle menu
-    function toggleUserMenu() {
-        const menu = document.getElementById('userMenu');
-        menu.classList.toggle('hidden');
-    }
-
-    // Función logout
-    function logout() {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = 'login.html';
-    }
-
-    // Inicializar info del usuario
-    document.getElementById('userNameNav').innerText = user.name || 'Usuario';
-    document.getElementById('profileName').innerText = user.name || 'Nombre Usuario';
-    document.getElementById('profileEmail').innerText = user.email || 'usuario@correo.com';
-
-    async function checkAuth() {
-    const token = localStorage.getItem('token');
-
-    if (!token) {
-        window.location.href = 'index.html';
-        return;
-    }
-
-    try {
-        const res = await fetch('http://localhost:3000/api/auth/users', {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!res.ok) {
-            localStorage.clear();
-            window.location.href = 'index.html';
-            return;
-        }
-
-        const user = await res.json();
-        console.log('Usuario autenticado:', user);
-
-        // 👉 Mostrar la página SOLO si pasó la validación
-        document.getElementById('appBody').classList.remove('hidden');
-
-    } catch (error) {
-        localStorage.clear();
-        window.location.href = 'index.html';
-    }
-}
-
+    // ========================
+    // INICIALIZAR
+    // ========================
+    loadUserNav();
     checkAuth();
 </script>
 
