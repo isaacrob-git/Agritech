@@ -159,36 +159,37 @@ CosechaDirecta/
 │       │   └── dashboard.js        # Lógica de dashboard unificado
 │       └── img/
 │
-├── server/                         # Backend (Node.js + Express)
-│   ├── server.js                   # Entry point
-│   ├── app.js                      # Configuración Express
-│   ├── .env                        # Variables de entorno
-│   ├── config/
-│   │   └── db.js                   # Conexión MongoDB
-│   ├── models/
-│   │   ├── User.js                 # agricultor, comercio, transportista, admin
-│   │   ├── Product.js              # disponible, vendido
-│   │   ├── Order.js                # 6 estados + viaje asociado
-│   │   ├── Contract.js             # 8 estados + token + historial
-│   │   ├── AssetToken.js           # 5 estados + financiado + split
-│   │   ├── Financing.js            # 4 estados + historial
-│   │   └── Trip.js                 # 7 estados + tracking geográfico
-│   ├── controllers/
-│   │   ├── authController.js       # register, login
-│   │   ├── productController.js    # CRUD productos
-│   │   ├── orderController.js      # Órdenes por rol, cambio de estado
-│   │   ├── contractController.js   # CRUD + aceptar/rechazar/cancelar
-│   │   ├── assetTokenController.js # Generar, split, consultar
-│   │   ├── financingController.js  # Solicitar, aprobar, rechazar
-│   │   ├── tripController.js       # Crear, asignar, tracking
-│   │   └── adminController.js      # CRUD global + password
-│   ├── routes/
-│   │   └── *.js                    # 1 por controlador
-│   └── middleware/
-│       ├── authMiddleware.js        # JWT protect
-│       └── upload.js                # Multer
-│
-└── package.json
+└── server/                         # Backend (Node.js + Express)
+    ├── server.js                   # Entry point
+    ├── app.js                      # Configuración Express
+    ├── .env                        # Variables de entorno
+    ├── package.json
+    ├── package-lock.json
+    ├── config/
+    │   └── db.js                   # Conexión MongoDB
+    ├── models/
+    │   ├── User.js                 # agricultor, comercio, transportista, admin
+    │   ├── Product.js              # disponible, vendido
+    │   ├── Order.js                # 6 estados + viaje asociado
+    │   ├── Contract.js             # 8 estados + token + historial
+    │   ├── AssetToken.js           # 5 estados + financiado + split
+    │   ├── Financing.js            # 4 estados + historial
+    │   └── Trip.js                 # 7 estados + tracking geográfico
+    ├── controllers/
+    │   ├── authController.js       # register, login
+    │   ├── productController.js    # CRUD productos
+    │   ├── orderController.js      # Órdenes por rol, cambio de estado
+    │   ├── contractController.js   # CRUD + aceptar/rechazar/cancelar
+    │   ├── assetTokenController.js # Generar, split, consultar
+    │   ├── financingController.js  # Solicitar, aprobar, rechazar
+    │   ├── tripController.js       # Crear, asignar, tracking
+    │   └── adminController.js      # CRUD global + password
+    ├── routes/
+    │   └── *.js                    # 1 por controlador
+    └── middleware/
+        ├── authMiddleware.js       # JWT protect
+        └── upload.js               # Multer
+ 
 ```
 
 ---
